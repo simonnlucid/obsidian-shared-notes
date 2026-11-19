@@ -2160,6 +2160,7 @@ function addTrafficCars(G){
       c.position.set(ln.x, 0, rand(-span, span));
       c.rotation.y = ln.dir > 0 ? 0 : Math.PI;
     }
+    c.traverse(o => { if(o.isMesh) o.castShadow = false; });
     G.add(c);
     city.cars.push(c);
   });
