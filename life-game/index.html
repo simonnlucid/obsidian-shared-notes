@@ -1639,8 +1639,8 @@ function updateClouds(dt){
 const SKY_KEYS = [
   { h:0,   top:0x080e20, mid:0x121b36, bot:0x1b2542, sun:0xc8d6ff, sunI:0.25, hemi:[0x2a3a5e, 0x14161f, 0.30], dir:[0x8fa6e0, 0.16], amb:0.10, fog:0x121a30, night:1 },
   { h:4.6, top:0x0d1730, mid:0x1c2a4a, bot:0x2a3550, sun:0xc0cdf0, sunI:0.22, hemi:[0x2f4064, 0x171a24, 0.34], dir:[0x8fa6e0, 0.2], amb:0.11, fog:0x1b2440, night:1 },
-  { h:6.2, top:0x2a4d80, mid:0x8a7ea8, bot:0xe0a37e, sun:0xffc08a, sunI:0.55, hemi:[0x9a90b0, 0x4a4238, 0.45], dir:[0xffc49a, 0.6], amb:0.12, fog:0x9c8ea0, night:0.55 },
-  { h:7.6, top:0x3d7fbe, mid:0xb9cfe2, bot:0xffd6b0, sun:0xffe0b0, sunI:0.7, hemi:[0xbfd8ee, 0x5d6b48, 0.5], dir:[0xffe6c8, 1.0], amb:0.11, fog:0xc7d6e0, night:0.15 },
+  { h:6.2, top:0x2a4d80, mid:0x8a7ea8, bot:0xe0a37e, sun:0xffc08a, sunI:0.55, hemi:[0x9a90b0, 0x4a4238, 0.55], dir:[0xffc49a, 0.7], amb:0.18, fog:0x9c8ea0, night:0.55 },
+  { h:7.6, top:0x3d7fbe, mid:0xb9cfe2, bot:0xffd6b0, sun:0xffe0b0, sunI:0.7, hemi:[0xbfd8ee, 0x5d6b48, 0.58], dir:[0xffe6c8, 1.05], amb:0.16, fog:0xc7d6e0, night:0.15 },
   { h:12,  top:0x2f74b8, mid:0x9ecbe8, bot:0xe6f0f6, sun:0xffffff, sunI:0.8, hemi:[0xd6ecff, 0x62764e, 0.52], dir:[0xfffdf2, 1.1], amb:0.10, fog:0xc3dbec, night:0 },
   { h:16.5,top:0x2f6fae, mid:0xa8c8e2, bot:0xf0dcc0, sun:0xfff2d0, sunI:0.78, hemi:[0xd2e6f8, 0x6a7450, 0.5], dir:[0xfff0d8, 1.0], amb:0.10, fog:0xc9d8e4, night:0.05 },
   { h:18.6,top:0x2b3f72, mid:0xb0705e, bot:0xf0a25e, sun:0xffa860, sunI:0.8, hemi:[0xc99a88, 0x5a4a40, 0.55], dir:[0xff9c5a, 0.6], amb:0.14, fog:0xb98a76, night:0.45 },
@@ -1681,9 +1681,9 @@ function applySky(hours){
     lightState.dir.color.setHex(mix(k0.dir[0], k1.dir[0]));
     lightState.dir.intensity = k0.dir[1] + (k1.dir[1] - k0.dir[1]) * t;
   }
-  if(lightState.amb) lightState.amb.intensity = k0.amb + (k1.amb - k0.amb) * t;
-
+  if(lightState.amb) lightState.amb.intensity = (k0.amb + (k1.amb - k0.amb) * t) * 1.5;
   const night = k0.night + (k1.night - k0.night) * t;
+  if(lightState.fill) lightState.fill.intensity = 0.34 - 0.2 * night;
   applyNight(night);
 
   /* 해 / 달 궤도 */
@@ -4351,6 +4351,11 @@ function initLights(){
   scene.add(dir.target);
   const amb = new THREE.AmbientLight(0xffffff, 0.14);
   scene.add(amb);
+  /* 그림자 진 면을 살리는 보조광 (그림자 없음) */
+  const fill = new THREE.DirectionalLight(0xc6dcff, 0.38);
+  fill.position.set(-70, 45, -60);
+  scene.add(fill);
+  lightState.fill = fill;
   lightState.hemi = hemi; lightState.dir = dir; lightState.amb = amb;
   updateSky(8 * 60);
 }
