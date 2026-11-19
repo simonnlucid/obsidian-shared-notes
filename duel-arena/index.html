@@ -302,7 +302,7 @@ h2{font-size:11px;letter-spacing:.3em;color:#74c4dd;margin-bottom:12px;font-weig
 
 /* ================= TOUCH ================= */
 #touchUI{position:fixed;inset:0;z-index:8;pointer-events:none}
-.tpad{position:absolute}
+.tpad{position:absolute;touch-action:none;-webkit-user-select:none;user-select:none}
 .tpad.solo{left:0;top:0;width:100%;height:100%}
 .tpad.half{width:50%;height:100%;left:0;top:0}
 .tlook{position:absolute;inset:0;pointer-events:auto;touch-action:none}
@@ -472,6 +472,11 @@ body.touching .btn.mode{min-width:100%}
 .tbtns .tbtn.fire{grid-column:3;grid-row:3;width:56px;height:58px;border-radius:16px;font-size:11px;
   background:linear-gradient(160deg,rgba(255,90,80,.85),rgba(180,30,40,.9));border-color:rgba(255,150,140,.7);color:#fff}
 .tbtns .tbtn[data-a="emote"]{border-color:rgba(255,210,110,.55);color:#ffe6a8}
+/* 슬라이딩: 점프와 사격 사이(아래 가운데) — 엄지로 바로 닿는 자리 */
+.tbtns .tbtn[data-a="slide"],.tbtns .tbtn.slide{grid-column:2;grid-row:3;width:56px;height:58px;border-radius:16px;font-size:11px;
+  background:linear-gradient(160deg,rgba(60,220,230,.42),rgba(10,90,120,.85));border-color:rgba(150,245,255,.75);color:#eaffff}
+.tbtns .tbtn[data-a="slide"]:active,.tbtns .tbtn.slide.on{background:rgba(90,240,255,.72);color:#04212b}
+.tpad.half .tbtns .tbtn[data-a="slide"]{width:48px;height:52px;font-size:10px}
 
 /* ================= iOS / 모바일 안전장치 =================
    터치 지연·더블탭 확대를 없애고, 버튼이 iOS 기본 모양으로 덮이지 않게 한다 */
@@ -786,7 +791,7 @@ body.touching .btn.mode{min-width:100%}
           <div><b>—</b><span>매 라운드 3-2-1 카운트다운 후 시작</span></div>
           <div><b>—</b><span>5선승 · 헤드샷 판정 · 점프 패드</span></div>
         </div>
-        <div class="mobileNote">📱 폰·태블릿: 자동으로 터치 조작이 켜집니다 (가상 스틱 + 시선 드래그 + 버튼). 온라인 대전에서도 그대로 동작해요.</div>
+        <div class="mobileNote">📱 폰·태블릿: 자동으로 터치 조작이 켜집니다 (가상 스틱 + 시선 드래그 + 버튼). <b>사격·조준 버튼을 누른 채 손가락을 움직이면 시점이 같이 돌아가고</b>, 아래 「슬라이딩」 버튼으로 앞으로 미끄러져요. 온라인 대전에서도 그대로 동작해요.</div>
       </div>
     </div>
     <div class="foot">
@@ -1845,17 +1850,29 @@ function tryJump() {
   Sfx.jump();
 }
 function trySlide() {
+  if (!P.alive) return;
+  if (P.sliding) { P.sliding = false; P.slideT = 0; return; }   // 한 번 더 누르면 슬라이딩 취소
   if (!P.grounded) return;
-  if (P.sliding) { P.sliding = false; P.slideT = 0; return; }
   const sp = Math.hypot(P.vel.x, P.vel.z);
-  if (sp > 5.2) {
-    P.sliding = true; P.slideT = 0.72;
-    P.slideDir.set(P.vel.x, 0, P.vel.z).normalize();
-    P.vel.x = P.slideDir.x * 12.2; P.vel.z = P.slideDir.z * 12.2;
-    Sfx.slide();
-  } else {
-    P.crouching = !P.crouching;
+  let dx = P.vel.x, dz = P.vel.z;
+  if (sp < 1.4) {
+    // 서 있거나 거의 멈춰 있어도 진행 입력(없으면 바라보는 쪽)으로 슬라이딩
+    const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw);
+    const rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw);
+    let wx = fx * (INPUT.f || 0) + rx * (INPUT.r || 0);
+    let wz = fz * (INPUT.f || 0) + rz * (INPUT.r || 0);
+    if (Math.hypot(wx, wz) < 0.2) { wx = fx; wz = fz; }
+    dx = wx; dz = wz;
   }
+  const l = Math.hypot(dx, dz) || 1;
+  P.sliding = true; P.slideT = 0.92;
+  P.crouching = false;
+  P.slideDir.set(dx / l, 0, dz / l);
+  P.vel.x = P.slideDir.x * 14.2;
+  P.vel.z = P.slideDir.z * 14.2;
+  P.vel.y = Math.min(P.vel.y, 0);
+  P.slideK = 0;
+  Sfx.slide();
 }
 
 function collideX(dx) {
@@ -1934,10 +1951,10 @@ function updatePlayer(dt, time) {
 
   const acc = P.grounded ? (P.sliding ? 3.2 : 15) : 4.2;
   if (P.sliding) {
-    P.vel.x = damp(P.vel.x, 0, 2.6, dt);
-    P.vel.z = damp(P.vel.z, 0, 2.6, dt);
-    P.vel.x += P.slideDir.x * 3.5 * dt;
-    P.vel.z += P.slideDir.z * 3.5 * dt;
+    // 슬라이딩은 누른 방향으로 끝까지 밀고 나간다(입력 여부와 무관) — 끝에서는 자연스럽게 줄어든다
+    const k = clamp(P.slideT / 0.92, 0.28, 1);
+    P.vel.x = damp(P.vel.x, P.slideDir.x * 12.5 * k, 9, dt);
+    P.vel.z = damp(P.vel.z, P.slideDir.z * 12.5 * k, 9, dt);
   } else {
     P.vel.x = damp(P.vel.x, wx * spd, acc, dt);
     P.vel.z = damp(P.vel.z, wz * spd, acc, dt);
@@ -1974,6 +1991,8 @@ function updatePlayer(dt, time) {
   }
 
   P.speedXZ = Math.hypot(P.vel.x, P.vel.z);
+  P.slideK = damp(P.slideK || 0, P.sliding ? 1 : 0, 11, dt);
+  P.eyeSmooth = damp(P.eyeSmooth === undefined ? P.eye : P.eyeSmooth, P.eye, 18, dt);
   P.bobAmt = damp(P.bobAmt, P.grounded ? Math.min(1, P.speedXZ / 8) : 0, 8, dt);
   P.bobPhase += dt * (P.speedXZ * 1.55 + 0.6);
 
@@ -1998,22 +2017,24 @@ const _shakeV = new V3();
 function updateCamera(dt) {
   const bobY = Math.sin(P.bobPhase * 2) * 0.035 * P.bobAmt;
   const bobX = Math.cos(P.bobPhase) * 0.03 * P.bobAmt;
-  const slideDrop = P.sliding ? 0.1 : 0;
+  const slideK = P.slideK || 0;
+  const eyeY = P.eyeSmooth === undefined ? P.eye : P.eyeSmooth;
   _shakeV.set(rnd(-1, 1), rnd(-1, 1), 0).multiplyScalar(P.shake * 0.05);
   camera.position.set(
     P.pos.x + bobX + _shakeV.x,
-    P.pos.y + P.eye + bobY - P.landKick + _shakeV.y,
+    P.pos.y + eyeY + bobY - P.landKick - slideK * 0.14 + _shakeV.y,
     P.pos.z
   );
   P.landKick = damp(P.landKick, 0, 9, dt);
   camera.rotation.set(
     P.pitch + P.recoilPitch + P.punch,
     P.yaw + P.recoilYaw,
-    P.roll + bobX * 0.25 + (P.sliding ? 0.06 : 0)
+    P.roll + bobX * 0.25 + slideK * 0.14
   );
   // fov
   FOV.target = W.scoped ? 16 : (W.ads > 0.02 ? lerp(FOV.base, currentW().adsFov || 58, W.ads) : FOV.base);
   if (P.sprinting) FOV.target += 6;
+  if (P.sliding) FOV.target += 9;
   FOV.cur = damp(FOV.cur, FOV.target, W.scoped ? 22 : 13, dt);
   if (Math.abs(camera.fov - FOV.cur) > 0.01) {
     camera.fov = FOV.cur;
@@ -2059,6 +2080,7 @@ function resetPlayer() {
   P.yaw = Math.atan2(-(SPAWN_B.x - SPAWN_A.x), -(SPAWN_B.z - SPAWN_A.z)); P.pitch = 0;
   P.hp = 100; P.armor = 100; P.alive = true;
   P.sliding = false; P.crouching = false; P.grounded = true;
+  P.slideT = 0; P.slideK = 0; P.eyeSmooth = P.eye;
   P.recoilPitch = 0; P.recoilYaw = 0; P.punch = 0; P.shake = 0;
   P.lastHurt = -99;
 }
@@ -5420,12 +5442,20 @@ function readDuelInput(f, dt) {
   // slide / crouch
   if (slide && f.grounded && !f.sliding) {
     const sp = Math.hypot(f.vel.x, f.vel.z);
-    if (sp > 3.5 || true) {
-      f.sliding = true; f.slideT = 0.55;
-      f.slideDir.set(Math.hypot(f.vel.x, f.vel.z) > 0.5 ? f.vel.x : -Math.sin(f.yaw), 0, Math.hypot(f.vel.x, f.vel.z) > 0.5 ? f.vel.z : -Math.cos(f.yaw)).normalize();
-      f.vel.x = f.slideDir.x * 11.5; f.vel.z = f.slideDir.z * 11.5;
-      Sfx.slide();
+    let dx = f.vel.x, dz = f.vel.z;
+    if (sp < 1.4) {
+      // 서 있어도 입력(없으면 시선) 방향으로 슬라이딩
+      let wx = -Math.sin(f.yaw) * fwd + Math.cos(f.yaw) * strafe;
+      let wz = -Math.cos(f.yaw) * fwd - Math.sin(f.yaw) * strafe;
+      if (Math.hypot(wx, wz) < 0.2) { wx = -Math.sin(f.yaw); wz = -Math.cos(f.yaw); }
+      dx = wx; dz = wz;
     }
+    const l = Math.hypot(dx, dz) || 1;
+    f.sliding = true; f.slideT = 0.88;
+    f.crouching = false;
+    f.slideDir.set(dx / l, 0, dz / l);
+    f.vel.x = f.slideDir.x * 13.8; f.vel.z = f.slideDir.z * 13.8;
+    Sfx.slide();
   }
   if (f.sliding) {
     f.slideT -= dt;
@@ -5447,10 +5477,17 @@ function readDuelInput(f, dt) {
   let spd = 6.6;
   if (f.sprinting) spd = 9.4;
   if (f.crouching) spd = 3.0;
-  if (f.sliding) spd = 11.5;
+  if (f.sliding) spd = 13.8;
   if (f.ads > 0.4) spd *= 0.62;
-  f.vel.x = damp(f.vel.x, wx * spd, f.sliding ? 3 : 14, dt);
-  f.vel.z = damp(f.vel.z, wz * spd, f.sliding ? 3 : 14, dt);
+  if (f.sliding) {
+    // 슬라이딩 중에는 방향이 고정되고 속도가 유지된다
+    const k = clamp(f.slideT / 0.88, 0.28, 1);
+    f.vel.x = damp(f.vel.x, f.slideDir.x * 12.5 * k, 9, dt);
+    f.vel.z = damp(f.vel.z, f.slideDir.z * 12.5 * k, 9, dt);
+  } else {
+    f.vel.x = damp(f.vel.x, wx * spd, 14, dt);
+    f.vel.z = damp(f.vel.z, wz * spd, 14, dt);
+  }
   f.vel.y -= 24 * dt;
   f.crouching = crouch && !f.sliding;
   if (jump && f.grounded && !f.sliding) {
@@ -5541,18 +5578,18 @@ function duelWeaponAnim(f, dt) {
   f.swing = damp(f.swing, 0, 9, dt);
   const aspX = clamp((innerWidth / innerHeight) / 1.55, 0.42, 1);
   f.sprintT = damp(f.sprintT || 0, f.sprinting ? 1 : 0, 7, dt);
-  f.slideT = damp(f.slideT || 0, f.sliding ? 1 : 0, 12, dt);
+  f.vmSlide = damp(f.vmSlide || 0, f.sliding ? 1 : 0, 12, dt);   // 시점 모델 기울기(슬라이딩 지속시간과 분리)
   f.airT = damp(f.airT || 0, f.grounded ? 0 : 1, 9, dt);
   const ap = adsPose(m);
   f.vm.root.position.set(
-    (1 - f.ads) * ((m.hip[0] + bobX) * VM.xAdj * (0.35 + 0.65 * aspX)) + f.ads * ap.x + f.slideT * 0.05,
-    (1 - f.ads) * ((m.hip[1] + bobY - reloadDip * 0.2 - switchDip * 0.16) * VM.yAdj + VM.yOff) + f.ads * ap.y - f.sprintT * 0.03 - f.slideT * 0.1 + f.airT * 0.012,
+    (1 - f.ads) * ((m.hip[0] + bobX) * VM.xAdj * (0.35 + 0.65 * aspX)) + f.ads * ap.x + f.vmSlide * 0.05,
+    (1 - f.ads) * ((m.hip[1] + bobY - reloadDip * 0.2 - switchDip * 0.16) * VM.yAdj + VM.yOff) + f.ads * ap.y - f.sprintT * 0.03 - f.vmSlide * 0.1 + f.airT * 0.012,
     lerp(m.hip[2] + VM.zOff, ap.z, f.ads) + f.kick * 0.05
   );
   f.vm.root.rotation.set(
-    f.kick * 0.1 - reloadDip * 0.55 - switchDip * 0.45 + f.sprintT * 0.1 - f.slideT * 0.2,
+    f.kick * 0.1 - reloadDip * 0.55 - switchDip * 0.45 + f.sprintT * 0.1 - f.vmSlide * 0.2,
     reloadDip * 0.25 + (m.melee ? f.swing * 0.7 * f.swingDir : 0) + f.sprintT * 0.2 + 0.035,
-    -(m.melee ? f.swing * 0.9 : 0) - f.sprintT * 0.16 - f.slideT * 0.42
+    -(m.melee ? f.swing * 0.9 : 0) - f.sprintT * 0.16 - f.vmSlide * 0.42
   );
   for (let i = 0; i < f.vm.models.length; i++) f.vm.models[i].group.visible = (i === f.wi);
   f.scopedHide = damp(f.scopedHide, f.scoped ? 1 : 0, 18, dt);
@@ -5574,7 +5611,7 @@ function updateFighterCamera(f) {
   const bobX = Math.cos(f.bobPhase) * 0.026 * f.bobAmt;
   const eye = f.sliding ? 1.15 : (f.crouching ? 1.22 : f.eye);
   f.cam.position.set(f.pos.x + bobX, f.pos.y + eye + bobY, f.pos.z);
-  f.cam.rotation.set(f.pitch + f.recoilPitch + f.punch, f.yaw + f.recoilYaw, bobX * 0.2 + (f.sliding ? 0.05 : 0));
+  f.cam.rotation.set(f.pitch + f.recoilPitch + f.punch, f.yaw + f.recoilYaw, bobX * 0.2 + (f.sliding ? 0.12 : 0));
   f.cam.fov = f.scoped ? 17 : lerp(80, WDEF[f.ids[f.wi]].adsFov || 60, f.ads);
   f.cam.updateProjectionMatrix();
   f.cam.updateMatrixWorld();
@@ -6126,6 +6163,8 @@ addEventListener('keydown', (e) => {
 'use strict';
 /* =========================================================================
    DUEL ARENA — p8 touch controls (solo + split-screen 2P)
+   멀티터치: 왼쪽 스틱 / 오른쪽 사격·시점 손가락을 pointerId 로 분리한다.
+   사격 버튼을 누른 채 손가락을 움직여도 시점이 따라 돌아간다.
    ========================================================================= */
 const TOUCH = { enabled: false, mode: 'none', pads: {}, built: false };
 
@@ -6140,6 +6179,7 @@ function padHTML() {
     '<button class="tbtn" data-a="crouch">앉기</button>' +
     '<button class="tbtn" data-a="emote">이모트</button>' +
     '<button class="tbtn" data-a="jump">점프</button>' +
+    '<button class="tbtn slide" data-a="slide">슬라이딩</button>' +
     '<button class="tbtn fire" data-a="fire">사격</button>' +
     '</div>';
 }
@@ -6159,6 +6199,7 @@ function buildTouch() {
       stick: el.querySelector('.tstick'), knob: el.querySelector('.tknob'),
       look: el.querySelector('.tlook'),
       axis: { x: 0, y: 0 }, lookId: null, lastX: 0, lastY: 0, stickId: null,
+      ptrs: new Map(),
     };
     bindPad(pad);
     TOUCH.pads[key] = pad;
@@ -6169,69 +6210,73 @@ function buildTouch() {
   layoutTouch();
 }
 
+/* ---------------------------------------------------------------------------
+   패드 하나가 포인터를 통째로 잡는다(패드 단위 포인터 캡처).
+   - pointerId → 역할(스틱 / 버튼 / 시점)을 기록해 손가락끼리 섞이지 않는다.
+   - 버튼을 누른 손가락을 떼지 않고 움직이면 그 이동량이 시점 회전이 된다.
+   - 버튼 위에서 손가락이 버튼 밖으로 나가도 사격이 끊기지 않는다.
+   --------------------------------------------------------------------------- */
 function bindPad(pad) {
-  // ---- joystick ----
-  const stickDown = (e) => {
-    e.preventDefault();
-    pad.stickId = e.pointerId;
-    try { pad.stick.setPointerCapture(e.pointerId); } catch (err) { }
-    updateStick(pad, e);
-  };
-  const stickMove = (e) => {
-    if (pad.stickId !== e.pointerId) return;
-    e.preventDefault();
-    updateStick(pad, e);
-  };
-  const stickUp = (e) => {
-    if (pad.stickId !== e.pointerId) return;
-    pad.stickId = null;
-    pad.axis.x = 0; pad.axis.y = 0;
-    pad.knob.style.transform = 'translate(0px,0px)';
-    applyTouchAxis(pad);
-  };
-  pad.stick.addEventListener('pointerdown', stickDown);
-  pad.stick.addEventListener('pointermove', stickMove);
-  pad.stick.addEventListener('pointerup', stickUp);
-  pad.stick.addEventListener('pointercancel', stickUp);
+  const ptrs = pad.ptrs;
 
-  // ---- look ----
-  pad.look.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
-    pad.lookId = e.pointerId;
-    pad.lastX = e.clientX; pad.lastY = e.clientY;
-    try { pad.look.setPointerCapture(e.pointerId); } catch (err) { }
-  });
-  pad.look.addEventListener('pointermove', (e) => {
-    if (pad.lookId !== e.pointerId) return;
-    e.preventDefault();
-    const dx = e.clientX - pad.lastX;
-    const dy = e.clientY - pad.lastY;
-    pad.lastX = e.clientX; pad.lastY = e.clientY;
-    applyLook(pad, dx, dy);
-  });
-  const lookUp = (e) => { if (pad.lookId === e.pointerId) pad.lookId = null; };
-  pad.look.addEventListener('pointerup', lookUp);
-  pad.look.addEventListener('pointercancel', lookUp);
+  const release = (id) => {
+    const rec = ptrs.get(id);
+    if (!rec) return;
+    ptrs.delete(id);
+    if (rec.role === 'stick') {
+      if (pad.stickId === id) {
+        pad.stickId = null;
+        pad.axis.x = 0; pad.axis.y = 0;
+        if (pad.knob) pad.knob.style.transform = 'translate(0px,0px)';
+        applyTouchAxis(pad);
+      }
+    } else if (rec.role === 'btn') {
+      if (rec.btn) rec.btn.classList.remove('on');
+      touchAction(pad, rec.a, false);
+    } else if (pad.lookId === id) {
+      pad.lookId = null;
+    }
+  };
+  pad.releaseAll = () => { Array.from(ptrs.keys()).forEach(release); };
 
-  // ---- buttons ----
-  Array.prototype.forEach.call(pad.el.querySelectorAll('.tbtn'), (btn) => {
-    const a = btn.dataset.a;
-    btn.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      btn.classList.add('on');
-      try { btn.setPointerCapture(e.pointerId); } catch (err) { }
-      touchAction(pad, a, true);
-    });
-    const up = (e) => {
-      btn.classList.remove('on');
-      touchAction(pad, a, false);
-    };
-    btn.addEventListener('pointerup', up);
-    btn.addEventListener('pointercancel', up);
-    btn.addEventListener('pointerleave', up);
-    btn.addEventListener('contextmenu', (e) => e.preventDefault());
+  pad.el.addEventListener('pointerdown', (e) => {
+    if (ptrs.has(e.pointerId)) return;
+    const tgt = e.target;
+    const stickEl = tgt && tgt.closest ? tgt.closest('.tstick') : null;
+    const btnEl = tgt && tgt.closest ? tgt.closest('.tbtn') : null;
+    let role = 'look';
+    if (stickEl) role = 'stick';
+    else if (btnEl) role = 'btn';
+    else if (pad.lookId !== null) role = 'idle';   // 이미 시점을 잡은 손가락이 있으면 무시
+    e.preventDefault();
+    try { pad.el.setPointerCapture(e.pointerId); } catch (err) { }
+    const rec = { role, btn: btnEl, a: btnEl ? btnEl.dataset.a : null, x: e.clientX, y: e.clientY };
+    ptrs.set(e.pointerId, rec);
+    if (role === 'stick') { pad.stickId = e.pointerId; updateStick(pad, e); }
+    else if (role === 'btn') { btnEl.classList.add('on'); touchAction(pad, rec.a, true); }
+    else if (role === 'look') { pad.lookId = e.pointerId; }
   });
+
+  pad.el.addEventListener('pointermove', (e) => {
+    const rec = ptrs.get(e.pointerId);
+    if (!rec) return;
+    e.preventDefault();
+    const dx = e.clientX - rec.x;
+    const dy = e.clientY - rec.y;
+    rec.x = e.clientX; rec.y = e.clientY;
+    if (rec.role === 'stick') { updateStick(pad, e); return; }
+    if (rec.role === 'btn' || rec.role === 'look') {
+      if (dx || dy) applyLook(pad, dx, dy);
+    }
+  });
+
+  const up = (e) => release(e.pointerId);
+  pad.el.addEventListener('pointerup', up);
+  pad.el.addEventListener('pointercancel', up);
+  pad.el.addEventListener('lostpointercapture', up);
+  pad.el.addEventListener('contextmenu', (e) => e.preventDefault());
+  addEventListener('blur', () => pad.releaseAll());
+  document.addEventListener('visibilitychange', () => { if (document.hidden) pad.releaseAll(); });
 }
 
 function updateStick(pad, e) {
@@ -6302,6 +6347,7 @@ function touchAction(pad, a, down) {
     else if (a === 'jump') f.inp.jumpTouch = true;
     else if (a === 'swap') f.inp.swapTouch = true;
     else if (a === 'util') f.inp.utilTouch = true;
+    else if (a === 'slide') f.inp.slideTouch = true;
     else if (a === 'crouch') f.inp.crouchTouch = !f.inp.crouchTouch;
     else if (a === 'emote') toggleEmoteWheel();
     return;
@@ -6312,6 +6358,7 @@ function touchAction(pad, a, down) {
   else if (a === 'ads') INPUT.ads = true;
   else if (a === 'reload') startReload();
   else if (a === 'jump') tryJump();
+  else if (a === 'slide') trySlide();
   else if (a === 'swap') cycleWeapon(1);
   else if (a === 'util') useUtility();
   else if (a === 'crouch') tryCrouchToggle();
