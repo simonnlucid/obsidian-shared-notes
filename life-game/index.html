@@ -80,7 +80,10 @@ input,textarea{font-family:inherit;color:inherit}
 #idcard{padding:6px 12px;min-width:0;flex:0 1 auto}
 #idcard .l1{font-size:9.5px;font-weight:800;color:var(--ink2);letter-spacing:.4px;white-space:nowrap}
 #idcard .l2{font-size:13.5px;font-weight:900;letter-spacing:-.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:31vw;color:#fff}
-#clockbox{margin-left:auto;display:flex;align-items:center;gap:5px;padding:8px 11px;font-size:12px;font-weight:800;letter-spacing:-.2px;white-space:nowrap;color:#eaf0fb}
+#clockbox{margin-left:auto;display:flex;align-items:center;gap:5px;padding:8px 11px;font-size:12px;font-weight:800;letter-spacing:-.2px;white-space:nowrap;color:#eaf0fb;transition:transform .12s ease, border-color .2s}
+#clockbox:active{transform:scale(.94)}
+#clockbox.paused{border-color:rgba(255,196,110,.65)}
+#clockbox .spd{font-size:11px;line-height:1;margin-left:1px;filter:drop-shadow(0 0 4px rgba(255,220,160,.5))}
 #moneybox{padding:8px 11px;font-size:12px;font-weight:900;letter-spacing:-.3px;color:#ffd9a8;white-space:nowrap}
 .iconbtn{
   width:38px;height:38px;border-radius:13px;display:flex;align-items:center;justify-content:center;
@@ -382,7 +385,7 @@ textarea.code{width:100%;height:92px;border-radius:13px;border:1px solid rgba(25
       <div class="l1" id="hudYear">2026년 · 16세</div>
       <div class="l2" id="hudTitle">고등학생 태산</div>
     </div>
-    <div id="clockbox" class="pill"><span class="sun" id="hudSun">☀️</span><span id="hudClock">07:00</span></div>
+    <div id="clockbox" class="pill" title="시간 속도를 바꿉니다"><span class="sun" id="hudSun">☀️</span><span id="hudClock">07:00</span><span id="hudSpeed" class="spd">🚶</span></div>
     <div id="moneybox" class="pill">₩ 50만원</div>
     <button class="iconbtn" id="btnCam" title="시점 전환 (V)">🎥</button>
   </div>
@@ -1058,6 +1061,159 @@ function TEX(key, w, h, draw, rx, ry){
   return t;
 }
 
+/* 높이(범프) 텍스처 — 색 공간을 주지 않아야 bumpMap으로 제대로 먹는다 */
+const BUMP_CACHE = Object.create(null);
+function bumpTex(key, w, h, draw, rx, ry){
+  const id = key + '|' + (rx || 1) + '|' + (ry || 1);
+  if(BUMP_CACHE[id]) return BUMP_CACHE[id];
+  const c = cv2d(w, h);
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(rx || 1, ry || 1);
+  t.anisotropy = 2;
+  BUMP_CACHE[id] = t;
+  return t;
+}
+
+/* ---------------- 높이맵 ---------------- */
+function bumpAsphalt(rx, ry){
+  return bumpTex('asphalt', 256, 256, (g, w, h) => {
+    g.fillStyle = '#808080'; g.fillRect(0, 0, w, h);
+    for(let i = 0; i < 1500; i++){
+      g.fillStyle = Math.random() < 0.5 ? 'rgba(34,34,34,.55)' : 'rgba(214,214,214,.5)';
+      g.beginPath(); g.arc(Math.random() * w, Math.random() * h, 0.5 + Math.random() * 2.2, 0, 7); g.fill();
+    }
+    g.strokeStyle = 'rgba(18,18,18,.8)'; g.lineWidth = 1.6;
+    for(let i = 0; i < 6; i++){
+      let x = Math.random() * w, y = Math.random() * h;
+      g.beginPath(); g.moveTo(x, y);
+      for(let k = 0; k < 5; k++){ x += rand(-16, 16); y += rand(-16, 16); g.lineTo(x, y); }
+      g.stroke();
+    }
+    grain(g, w, h, 0.14);
+  }, rx, ry);
+}
+
+function bumpSidewalk(rx, ry){
+  return bumpTex('sidewalk', 256, 256, (g, w, h) => {
+    g.fillStyle = '#343434'; g.fillRect(0, 0, w, h);
+    const S2 = 64;
+    for(let y = 0; y < h; y += S2){
+      for(let x = 0; x < w; x += S2){
+        const v = Math.round(198 + Math.random() * 42);
+        g.fillStyle = 'rgb(' + v + ',' + v + ',' + v + ')';
+        g.fillRect(x + 3, y + 3, S2 - 6, S2 - 6);
+        g.fillStyle = 'rgba(255,255,255,.22)';
+        g.fillRect(x + 3, y + 3, S2 - 6, 3);
+        g.fillStyle = 'rgba(0,0,0,.18)';
+        g.fillRect(x + 3, y + S2 - 6, S2 - 6, 3);
+        for(let i = 0; i < 9; i++){
+          g.fillStyle = 'rgba(255,255,255,.10)';
+          g.beginPath(); g.arc(x + 6 + Math.random() * (S2 - 12), y + 6 + Math.random() * (S2 - 12), 1 + Math.random() * 2.4, 0, 7); g.fill();
+        }
+      }
+    }
+    grain(g, w, h, 0.1);
+  }, rx, ry);
+}
+
+function bumpBrick(rx, ry){
+  return bumpTex('brick', 256, 256, (g, w, h) => {
+    g.fillStyle = '#2c2c2c'; g.fillRect(0, 0, w, h);
+    const bh = 21, bw = 52, mo = 3;
+    let row = 0;
+    for(let y = 0; y < h; y += bh){
+      const off = (row % 2) * (bw / 2);
+      for(let x = -bw; x < w + bw; x += bw){
+        const v = Math.round(188 + Math.random() * 56);
+        g.fillStyle = 'rgb(' + v + ',' + v + ',' + v + ')';
+        g.fillRect(x + off + mo, y + mo, bw - mo * 2, bh - mo * 2);
+        g.fillStyle = 'rgba(255,255,255,.3)';
+        g.fillRect(x + off + mo, y + mo, bw - mo * 2, 2);
+        g.fillStyle = 'rgba(0,0,0,.3)';
+        g.fillRect(x + off + mo, y + bh - mo - 2, bw - mo * 2, 2);
+      }
+      row++;
+    }
+    grain(g, w, h, 0.1);
+  }, rx, ry);
+}
+
+function bumpStone(rx, ry){
+  return bumpTex('stone', 256, 256, (g, w, h) => {
+    g.fillStyle = '#323232'; g.fillRect(0, 0, w, h);
+    const bw = 128, bh = 64;
+    for(let y = 0; y < h; y += bh){
+      const off = ((y / bh) % 2) * (bw / 2);
+      for(let x = -bw; x < w + bw; x += bw){
+        const v = Math.round(198 + Math.random() * 48);
+        g.fillStyle = 'rgb(' + v + ',' + v + ',' + v + ')';
+        g.fillRect(x + off + 3, y + 3, bw - 6, bh - 6);
+        g.fillStyle = 'rgba(255,255,255,.32)';
+        g.fillRect(x + off + 3, y + 3, bw - 6, 2);
+      }
+    }
+    grain(g, w, h, 0.13);
+  }, rx, ry);
+}
+
+function bumpWood(rx, ry){
+  return bumpTex('wood', 256, 256, (g, w, h) => {
+    g.fillStyle = '#8c8c8c'; g.fillRect(0, 0, w, h);
+    const ph = 26;
+    for(let y = 0; y < h; y += ph){
+      const v = Math.round(168 + Math.random() * 62);
+      g.fillStyle = 'rgb(' + v + ',' + v + ',' + v + ')';
+      g.fillRect(0, y + 3, w, ph - 4);
+      g.fillStyle = 'rgba(0,0,0,.55)';
+      g.fillRect(0, y, w, 3);
+      g.strokeStyle = 'rgba(0,0,0,.1)'; g.lineWidth = 1;
+      for(let i = 0; i < 4; i++){
+        const yy = y + 5 + Math.random() * (ph - 10);
+        g.beginPath(); g.moveTo(0, yy); g.bezierCurveTo(w * .3, yy + rand(-2, 2), w * .6, yy + rand(-2, 2), w, yy); g.stroke();
+      }
+    }
+    grain(g, w, h, 0.08);
+  }, rx, ry);
+}
+
+function bumpConcrete(rx, ry, tone){
+  return bumpTex('concrete' + (tone || ''), 256, 256, (g, w, h) => {
+    g.fillStyle = '#9a9a9a'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = 2;
+    for(let y = 0; y < h; y += 64){ g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+    for(let x = 0; x < w; x += 128){ g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
+    for(let i = 0; i < 500; i++){
+      g.fillStyle = Math.random() < .5 ? 'rgba(50,50,50,.35)' : 'rgba(220,220,220,.35)';
+      g.beginPath(); g.arc(Math.random() * w, Math.random() * h, 0.6 + Math.random() * 1.8, 0, 7); g.fill();
+    }
+    grain(g, w, h, 0.13);
+  }, rx, ry);
+}
+
+function texBeamGrad(){
+  return bumpTex('beamgrad', 32, 128, (g, w, h) => {
+    const grd = g.createLinearGradient(0, h, 0, 0);
+    grd.addColorStop(0, '#000000');
+    grd.addColorStop(0.35, '#2c2c2c');
+    grd.addColorStop(0.75, '#8a8a8a');
+    grd.addColorStop(1, '#ffffff');
+    g.fillStyle = grd; g.fillRect(0, 0, w, h);
+  }, 1, 1);
+}
+
+/* 자동차 도장 메탈릭 플레이크 (거칠기 변화) */
+function texPaintFlake(){
+  return bumpTex('paintflake', 64, 64, (g, w, h) => {
+    g.fillStyle = '#d2d2d2'; g.fillRect(0, 0, w, h);
+    for(let i = 0; i < 320; i++){
+      g.fillStyle = Math.random() < 0.5 ? 'rgba(255,255,255,.95)' : 'rgba(132,132,132,.75)';
+      g.fillRect(Math.random() * w, Math.random() * h, 1, 1);
+    }
+  }, 3, 3);
+}
+
 /* ---------------- 바닥 ---------------- */
 function texAsphalt(rx, ry){
   return TEX('asphalt', 256, 256, (g, w, h) => {
@@ -1532,35 +1688,64 @@ function ibox(list, key, matRef, x, y, z, sx, sy, sz, ry){
 }
 
 /* ---------- 공용 재질 ---------- */
+/* 반사용 환경맵: 하늘–지평선–땅 그라데이션 한 장 (차량 도장·유리에만 사용) */
+let _envTex = null;
+function envTex(){
+  if(_envTex) return _envTex;
+  const c = cv2d(256, 128);
+  const g = c.getContext('2d');
+  const grd = g.createLinearGradient(0, 0, 0, 128);
+  grd.addColorStop(0.00, '#2a5c9c');
+  grd.addColorStop(0.32, '#7fb6e2');
+  grd.addColorStop(0.48, '#c9c3b2');
+  grd.addColorStop(0.55, '#8a8577');
+  grd.addColorStop(1.00, '#43443e');
+  g.fillStyle = grd; g.fillRect(0, 0, 256, 128);
+  const sun = g.createRadialGradient(74, 50, 0, 74, 50, 72);
+  sun.addColorStop(0, 'rgba(255,250,232,.98)');
+  sun.addColorStop(0.32, 'rgba(255,238,198,.4)');
+  sun.addColorStop(1, 'rgba(255,238,198,0)');
+  g.fillStyle = sun; g.fillRect(0, 0, 256, 128);
+  /* 지평선 근처 밝은 띠 */
+  g.fillStyle = 'rgba(255,255,255,.16)';
+  g.fillRect(0, 60, 256, 3);
+  const t = new THREE.CanvasTexture(c);
+  t.mapping = THREE.EquirectangularReflectionMapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  _envTex = t;
+  return t;
+}
+
 const M = {
-  concrete: stdMat({ color: 0xd6d0c4, map: texConcrete(2, 2), roughness: 0.92 }),
-  concreteDark: stdMat({ color: 0x9b968c, map: texConcrete(2, 2, 'dark'), roughness: 0.95 }),
-  stone: stdMat({ color: 0xd8cdb6, map: texStone(2, 1), roughness: 0.8 }),
-  brick: stdMat({ color: 0xc98d76, map: texBrick(2, 2), roughness: 0.95 }),
-  wood: stdMat({ color: 0xc9a77c, map: texWood(2, 2), roughness: 0.85 }),
+  concrete: stdMat({ color: 0xd6d0c4, map: texConcrete(2, 2), bumpMap: bumpConcrete(2, 2), bumpScale: 0.035, roughness: 0.92 }),
+  concreteDark: stdMat({ color: 0x9b968c, map: texConcrete(2, 2, 'dark'), bumpMap: bumpConcrete(2, 2, 'dark'), bumpScale: 0.035, roughness: 0.95 }),
+  stone: stdMat({ color: 0xd8cdb6, map: texStone(2, 1), bumpMap: bumpStone(2, 1), bumpScale: 0.05, roughness: 0.8 }),
+  brick: stdMat({ color: 0xc98d76, map: texBrick(2, 2), bumpMap: bumpBrick(2, 2), bumpScale: 0.06, roughness: 0.95 }),
+  wood: stdMat({ color: 0xc9a77c, map: texWood(2, 2), bumpMap: bumpWood(2, 2), bumpScale: 0.045, roughness: 0.85 }),
   tile: stdMat({ color: 0xa2564a, map: texRoofTile(6, 4), roughness: 0.8 }),
   darkTile: stdMat({ color: 0x5b6470, map: texRoofTile(6, 4), roughness: 0.7 }),
   white: stdMat({ color: 0xf2f0ea, roughness: 0.55 }),
   trim: stdMat({ color: 0xe9e5dc, roughness: 0.5 }),
-  metal: stdMat({ color: 0x9aa1a9, map: texMetal(1, 4), roughness: 0.35, metalness: 0.75 }),
-  darkMetal: stdMat({ color: 0x3b4049, roughness: 0.45, metalness: 0.6 }),
-  glass: stdMat({ color: 0x9dc6dd, roughness: 0.12, metalness: 0.55, emissive: 0xffcf8a, emissiveIntensity: 0 }),
-  glassDark: stdMat({ color: 0x4d6f88, roughness: 0.1, metalness: 0.7, emissive: 0xffc98a, emissiveIntensity: 0 }),
-  shopGlass: stdMat({ color: 0xa8ccdc, map: texShopGlass(2, 1), roughness: 0.18, metalness: 0.35, emissive: 0xffd9a0, emissiveIntensity: 0 }),
-  winGlass: stdMat({ color: 0xa9c9d9, transparent: true, opacity: 0.34, roughness: 0.05, metalness: 0.4, depthWrite: false }),
-  winGlassCold: stdMat({ color: 0x46626f, roughness: 0.14, metalness: 0.7, emissive: 0xffcf8a, emissiveIntensity: 0 }),
+  metal: stdMat({ color: 0x9aa1a9, map: texMetal(1, 4), roughness: 0.3, metalness: 0.8, envMap: envTex(), envMapIntensity: 0.9 }),
+  darkMetal: stdMat({ color: 0x3b4049, roughness: 0.38, metalness: 0.65, envMap: envTex(), envMapIntensity: 0.6 }),
+  glass: stdMat({ color: 0x9dc6dd, roughness: 0.08, metalness: 0.6, envMap: envTex(), envMapIntensity: 0.85, emissive: 0xffcf8a, emissiveIntensity: 0 }),
+  glassDark: stdMat({ color: 0x3b4f61, roughness: 0.14, metalness: 0.5, envMap: envTex(), envMapIntensity: 0.5, emissive: 0xffc98a, emissiveIntensity: 0 }),
+  carGlass: stdMat({ color: 0x2b3f4e, roughness: 0.14, metalness: 0.5, envMap: envTex(), envMapIntensity: 0.55 }),
+  shopGlass: stdMat({ color: 0xa8ccdc, map: texShopGlass(2, 1), roughness: 0.14, metalness: 0.4, envMap: envTex(), envMapIntensity: 0.9, emissive: 0xffd9a0, emissiveIntensity: 0 }),
+  winGlass: stdMat({ color: 0xa9c9d9, transparent: true, opacity: 0.34, roughness: 0.05, metalness: 0.3, depthWrite: false }),
+  winGlassCold: stdMat({ color: 0x46626f, roughness: 0.12, metalness: 0.7, emissive: 0xffcf8a, emissiveIntensity: 0 }),
   litPane: new THREE.MeshBasicMaterial({ color: 0xffd9a0, transparent: true, opacity: 0, depthWrite: false }),
-  asphalt: stdMat({ color: 0xffffff, map: texAsphalt(3, 90), roughness: 0.97 }),
-  asphaltH: stdMat({ color: 0xffffff, map: texAsphalt(90, 3), roughness: 0.97 }),
-  sidewalk: stdMat({ color: 0xffffff, map: texSidewalk(24, 4), roughness: 0.95 }),
-  sidewalkV: stdMat({ color: 0xffffff, map: texSidewalk(4, 24), roughness: 0.95 }),
+  asphalt: stdMat({ color: 0xffffff, map: texAsphalt(3, 90), bumpMap: bumpAsphalt(3, 90), bumpScale: 0.05, roughness: 0.94 }),
+  asphaltH: stdMat({ color: 0xffffff, map: texAsphalt(90, 3), bumpMap: bumpAsphalt(90, 3), bumpScale: 0.05, roughness: 0.94 }),
+  sidewalk: stdMat({ color: 0xffffff, map: texSidewalk(24, 4), bumpMap: bumpSidewalk(24, 4), bumpScale: 0.055, roughness: 0.93 }),
+  sidewalkV: stdMat({ color: 0xffffff, map: texSidewalk(4, 24), bumpMap: bumpSidewalk(4, 24), bumpScale: 0.055, roughness: 0.93 }),
   grass: stdMat({ color: 0xffffff, map: texGrass(16, 16), roughness: 1 }),
   grassFar: stdMat({ color: 0x7fae63, roughness: 1 }),
   dirt: stdMat({ color: 0xffffff, map: texDirt(10, 10), roughness: 1 }),
-  water: stdMat({ color: 0xffffff, map: texWater(40, 6), roughness: 0.22, metalness: 0.4 }),
+  water: stdMat({ color: 0xffffff, map: texWater(40, 6), roughness: 0.16, metalness: 0.5, envMap: envTex(), envMapIntensity: 1.1 }),
   black: stdMat({ color: 0x232730, roughness: 0.6 }),
   tire: stdMat({ color: 0x1b1d22, roughness: 0.95 }),
-  chrome: stdMat({ color: 0xc9d0d8, roughness: 0.22, metalness: 0.95 }),
+  chrome: stdMat({ color: 0xc9d0d8, roughness: 0.12, metalness: 1.0, envMap: envTex(), envMapIntensity: 1.6 }),
   lampWarm: stdMat({ color: 0xfff0c8, emissive: 0xffd27a, emissiveIntensity: 1.1, roughness: 0.4 }),
   neonPink: stdMat({ color: 0xff9dc4, emissive: 0xff5f9e, emissiveIntensity: 1.2, roughness: 0.4 }),
   neonCyan: stdMat({ color: 0x9df2ff, emissive: 0x4ad8ff, emissiveIntensity: 1.2, roughness: 0.4 })
@@ -1704,20 +1889,21 @@ function applySky(hours){
 }
 
 function applyNight(night){
-  if(M.litPane) M.litPane.opacity = 0.72 * night;
-  if(M.winGlassCold) M.winGlassCold.emissiveIntensity = 0.45 * night;
+  if(M.litPane) M.litPane.opacity = 0.8 * night;
+  if(M.winGlassCold) M.winGlassCold.emissiveIntensity = 0.5 * night;
   for(const m of city.nightMats){
     if(!m) continue;
     m.emissiveIntensity = (m.userData.night || 1) * night;
   }
   for(const b of city.buildings){
-    if(b.emissiveMat) b.emissiveMat.emissiveIntensity = 0.95 * night;
+    if(b.emissiveMat) b.emissiveMat.emissiveIntensity = 1.15 * night;
   }
   for(const s of city.glowSprites){
     if(s.material) s.material.opacity = 0.25 + 0.75 * night;
   }
   if(city.lamps){ /* 인스턴스 가로등 */ }
   city.night = night;
+  refreshCarBeams();
 }
 
 /* =========================================================
@@ -1920,20 +2106,43 @@ function buildCity(){
     const tx = -WORLD.maxX + 8 + i * (WORLD.maxX * 2 - 16) / 17 + rand(-3, 3), tz = CITY.treeLineZ + rand(-2, 2);
     if(!treeBlocked(tx, tz)) treePos.push({ x: tx, z: tz, s: rand(0.8, 1.1) });
   }
-  const trunkMesh = new THREE.InstancedMesh(geo('trunk', () => new THREE.CylinderGeometry(0.22, 0.34, 2.8, 6)), stdMat({ color: 0x7c5a3c, roughness: 0.95 }), treePos.length);
-  const leafGeo = geo('leaf', () => new THREE.IcosahedronGeometry(2.2, 1));
-  const leafMesh = new THREE.InstancedMesh(leafGeo, stdMat({ color: 0x3f7f42, roughness: 0.9 }), treePos.length);
-  const leaf2Mesh = new THREE.InstancedMesh(geo('leaf2', () => new THREE.IcosahedronGeometry(1.5, 1)), stdMat({ color: 0x57994f, roughness: 0.9 }), treePos.length);
+  const trunkMesh = new THREE.InstancedMesh(geo('trunk', () => new THREE.CylinderGeometry(0.2, 0.36, 2.9, 7)), stdMat({ color: 0x7c5a3c, roughness: 0.95 }), treePos.length);
+  /* 잎 — 4겹 클러스터: 아래는 어둡고 넓게, 위로 갈수록 밝고 작게 (인스턴스라 드로우콜은 4개) */
+  const leafA = new THREE.InstancedMesh(geo('leafA', () => new THREE.IcosahedronGeometry(2.25, 1)), stdMat({ color: 0x2f6b39, roughness: 0.9 }), treePos.length);
+  const leafB = new THREE.InstancedMesh(geo('leafB', () => new THREE.IcosahedronGeometry(1.72, 1)), stdMat({ color: 0x468c46, roughness: 0.9 }), treePos.length);
+  const leafC = new THREE.InstancedMesh(geo('leafC', () => new THREE.IcosahedronGeometry(1.24, 1)), stdMat({ color: 0x63a552, roughness: 0.9 }), treePos.length);
+  const leafD = new THREE.InstancedMesh(geo('leafD', () => new THREE.IcosahedronGeometry(0.92, 1)), stdMat({ color: 0x7ab95e, roughness: 0.9 }), treePos.length * 2);
+  const tcol = new THREE.Color();
+  const leafSet = (mesh, i, p, sc, base, hueJ) => {
+    m4.compose(p, q.identity(), sc);
+    mesh.setMatrixAt(i, m4);
+    tcol.setHex(base).offsetHSL(rand(-hueJ, hueJ), rand(-0.06, 0.06), rand(-0.055, 0.055));
+    if(mesh.setColorAt) mesh.setColorAt(i, tcol);
+  };
   treePos.forEach((t, i) => {
-    m4.compose(new THREE.Vector3(t.x, 1.4 * t.s, t.z), q.identity(), new THREE.Vector3(t.s, t.s, t.s));
+    m4.compose(new THREE.Vector3(t.x, 1.45 * t.s, t.z), q.identity(), new THREE.Vector3(t.s, t.s, t.s));
     trunkMesh.setMatrixAt(i, m4);
-    m4.compose(new THREE.Vector3(t.x, 5.0 * t.s, t.z), q.identity(), new THREE.Vector3(t.s, t.s * 1.15, t.s));
-    leafMesh.setMatrixAt(i, m4);
-    m4.compose(new THREE.Vector3(t.x + rand(-.7,.7), 6.2 * t.s, t.z + rand(-.7,.7)), q.identity(), new THREE.Vector3(t.s, t.s, t.s));
-    leaf2Mesh.setMatrixAt(i, m4);
+    const s = t.s;
+    leafSet(leafA, i,
+      new THREE.Vector3(t.x, (4.7 + rand(-0.12, 0.12)) * s, t.z),
+      new THREE.Vector3(s * 1.12, s * 0.9, s * 1.12), 0x2f6b39, 0.02);
+    leafSet(leafB, i,
+      new THREE.Vector3(t.x + rand(-0.35, 0.35), (5.75 + rand(-0.12, 0.14)) * s, t.z + rand(-0.35, 0.35)),
+      new THREE.Vector3(s * 1.0, s * 0.95, s * 1.0), 0x468c46, 0.025);
+    leafSet(leafC, i,
+      new THREE.Vector3(t.x + rand(-0.3, 0.3), (6.75 + rand(-0.1, 0.12)) * s, t.z + rand(-0.3, 0.3)),
+      new THREE.Vector3(s * 0.95, s, s * 0.95), 0x63a552, 0.025);
+    const a0 = (i * 2.39996) % (Math.PI * 2);
+    for(let k = 0; k < 2; k++){
+      const a = a0 + k * Math.PI + rand(-0.5, 0.5);
+      leafSet(leafD, i * 2 + k,
+        new THREE.Vector3(t.x + Math.cos(a) * 1.25 * s, (5.5 + rand(-0.35, 0.5)) * s, t.z + Math.sin(a) * 1.25 * s),
+        new THREE.Vector3(s * 1.0, s * 0.9, s * 1.0), 0x7ab95e, 0.03);
+    }
   });
-  trunkMesh.castShadow = true; leafMesh.castShadow = true;
-  G.add(trunkMesh); G.add(leafMesh); G.add(leaf2Mesh);
+  [leafA, leafB, leafC, leafD].forEach(l => { if(l.instanceColor) l.instanceColor.needsUpdate = true; });
+  trunkMesh.castShadow = true; leafA.castShadow = true; leafB.castShadow = true;
+  G.add(trunkMesh); G.add(leafA); G.add(leafB); G.add(leafC); G.add(leafD);
 
   /* 화단 */
   const planters = [];
@@ -2202,8 +2411,29 @@ function makeFacadePair(key, hexColor, w, h, cols, litP, style){
         g.fillStyle = 'rgba(0,0,0,.14)'; g.fillRect(x - 3, y + wh + 2, ww + 6, 2);
       }
       if(Math.random() < litP){
-        g2.fillStyle = Math.random() < 0.7 ? 'rgba(255,206,132,1)' : 'rgba(180,215,255,1)';
+        /* 밤에 켜지는 창: 따뜻한 불빛 · 형광등빛 · TV 푸른빛을 섞고, 빛 번짐을 더함 */
+        const pick2 = Math.random();
+        const warm = pick2 < 0.62, tv = pick2 > 0.9;
+        const a = 0.78 + Math.random() * 0.22;
+        if(tv){
+          g2.fillStyle = 'rgba(150,196,255,' + a + ')';
+        } else if(warm){
+          g2.fillStyle = 'rgba(255,' + Math.round(178 + Math.random() * 52) + ',' + Math.round(96 + Math.random() * 62) + ',' + a + ')';
+        } else {
+          g2.fillStyle = 'rgba(' + Math.round(196 + Math.random() * 40) + ',' + Math.round(226 + Math.random() * 26) + ',255,' + a + ')';
+        }
         g2.fillRect(x, y, ww, wh);
+        /* 창 안쪽 밝은 중심 */
+        g2.fillStyle = 'rgba(255,255,255,' + (0.16 + Math.random() * 0.24) + ')';
+        g2.fillRect(x + ww * 0.14, y + wh * 0.1, ww * 0.72, wh * 0.46);
+        /* 새어나오는 빛 번짐 */
+        g2.fillStyle = tv ? 'rgba(140,190,255,.14)' : (warm ? 'rgba(255,188,120,.15)' : 'rgba(180,215,255,.14)');
+        g2.fillRect(x - ww * 0.2, y - wh * 0.22, ww * 1.4, wh * 1.44);
+        /* 커튼 · 블라인드 결 */
+        if(Math.random() < 0.4){
+          g2.fillStyle = 'rgba(0,0,0,.22)';
+          for(let b = 1; b < 4; b++) g2.fillRect(x, y + wh * b / 4, ww, 1.2);
+        }
       }
     }
   }
@@ -2385,7 +2615,7 @@ function buildTower(grp, b){
   const signW = Math.min(W * 0.6, 10);
   const signY = podium + 2.6;
   grp.add(boxMesh(signW * 1.03, signW * 0.26, 0.22, M.darkMetal, 0, signY, D / 2 + 2.1));
-  const signMat = new THREE.MeshBasicMaterial({ map: signTexture(b.sign, '#fffdf5'), transparent: true, depthWrite: false });
+  const signMat = signMaterial(b.sign, '#fffdf5');
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(signW, signW * 0.25), signMat);
   sign.position.set(0, signY, D / 2 + 2.23);
   sign.userData.noShadow = true;
@@ -2452,7 +2682,7 @@ function buildOffice(grp, b){
   const signW = Math.min(W * 0.62, 9.5);
   const signY = b.h * 0.6;
   grp.add(boxMesh(signW * 1.03, signW * 0.26, 0.2, M.darkMetal, 0, signY, D / 2 + 0.12));
-  const sign = new THREE.Mesh(new THREE.PlaneGeometry(signW, signW * 0.25), new THREE.MeshBasicMaterial({ map: signTexture(b.sign, '#fffdf5'), transparent: true, depthWrite: false }));
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(signW, signW * 0.25), signMaterial(b.sign, '#fffdf5'));
   sign.position.set(0, signY, D / 2 + 0.24);
   sign.userData.noShadow = true;
   grp.add(sign);
@@ -2607,7 +2837,7 @@ function buildSchoolBuilding(grp, b){
   grp.add(boxMesh(W + 0.6, 0.5, D + 0.6, M.concreteDark, 0, H + 0.3, 0));
   /* 시계 / 간판 */
   const signW = Math.min(W * 0.5, 12);
-  const sign = new THREE.Mesh(new THREE.PlaneGeometry(signW, signW * 0.24), new THREE.MeshBasicMaterial({ map: signTexture(b.sign, '#fffdf5'), transparent: true, depthWrite: false }));
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(signW, signW * 0.24), signMaterial(b.sign, '#fffdf5'));
   sign.position.set(0, H - 2.2, D / 2 + 0.3);
   sign.userData.noShadow = true;
   grp.add(sign);
@@ -3205,24 +3435,64 @@ function rebuildHome(){
 }
 
 /* ---------- 간판 텍스처 ---------- */
+function rrectPath(g, x, y, w, h, r){
+  r = Math.min(r, w / 2, h / 2);
+  g.beginPath();
+  g.moveTo(x + r, y);
+  g.lineTo(x + w - r, y);
+  g.arcTo(x + w, y, x + w, y + r, r);
+  g.lineTo(x + w, y + h - r);
+  g.arcTo(x + w, y + h, x + w - r, y + h, r);
+  g.lineTo(x + r, y + h);
+  g.arcTo(x, y + h, x, y + h - r, r);
+  g.lineTo(x, y + r);
+  g.arcTo(x, y, x + r, y, r);
+  g.closePath();
+}
 function signTexture(text, bg){
   const key = 'sign_' + text + '_' + bg;
-  return TEX(key, 512, 128, (g, w, h) => {
+  return TEX(key, 768, 192, (g, w, h) => {
     g.clearRect(0, 0, w, h);
-    const r = 24;
+    const r = 34;
+    /* 판 그림자 */
+    g.save();
+    g.shadowColor = 'rgba(0,0,0,.4)';
+    g.shadowBlur = 16; g.shadowOffsetY = 6;
     g.fillStyle = bg || '#fffdf5';
-    g.beginPath();
-    g.moveTo(10 + r, 10); g.lineTo(w - 10 - r, 10); g.quadraticCurveTo(w - 10, 10, w - 10, 10 + r);
-    g.lineTo(w - 10, h - 10 - r); g.quadraticCurveTo(w - 10, h - 10, w - 10 - r, h - 10);
-    g.lineTo(10 + r, h - 10); g.quadraticCurveTo(10, h - 10, 10, h - 10 - r);
-    g.lineTo(10, 10 + r); g.quadraticCurveTo(10, 10, 10 + r, 10);
-    g.closePath(); g.fill();
-    g.strokeStyle = 'rgba(60,45,30,.3)'; g.lineWidth = 5; g.stroke();
-    g.fillStyle = '#2b2438';
-    g.font = 'bold 62px "Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+    rrectPath(g, 12, 12, w - 24, h - 24, r); g.fill();
+    g.restore();
+    /* 유리 광택 */
+    const gl = g.createLinearGradient(0, 12, 0, h - 12);
+    gl.addColorStop(0, 'rgba(255,255,255,.9)');
+    gl.addColorStop(0.4, 'rgba(255,255,255,.26)');
+    gl.addColorStop(0.52, 'rgba(255,255,255,0)');
+    gl.addColorStop(1, 'rgba(0,0,0,.12)');
+    g.fillStyle = gl;
+    rrectPath(g, 12, 12, w - 24, h - 24, r); g.fill();
+    /* 테두리 */
+    g.strokeStyle = 'rgba(64,48,32,.35)'; g.lineWidth = 6;
+    rrectPath(g, 12, 12, w - 24, h - 24, r); g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 2;
+    rrectPath(g, 20, 20, w - 40, h - 40, Math.max(4, r - 8)); g.stroke();
+    /* 글자 — 그림자 + 또렷한 본문 */
     g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.fillText(text, w / 2, h / 2 + 4, w - 40);
+    g.font = '900 104px "Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+    g.fillStyle = 'rgba(0,0,0,.3)'; g.fillText(text, w / 2, h / 2 + 9, w - 96);
+    g.fillStyle = '#201a2c'; g.fillText(text, w / 2, h / 2 + 4, w - 96);
+    g.fillStyle = 'rgba(255,255,255,.4)'; g.fillText(text, w / 2, h / 2 + 1, w - 96);
   }, 1, 1);
+}
+
+/* 밤에 은은하게 빛나는 간판 재질 */
+function signMaterial(text, bg, glow){
+  const tex = signTexture(text, bg);
+  const m = stdMat({
+    map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0,
+    roughness: 0.32, metalness: 0.05, transparent: true, depthWrite: false
+  });
+  m.userData.night = glow == null ? 1.0 : glow;
+  city.nightMats.push(m);
+  return m;
 }
 
 function treeBlocked(x, z){
@@ -3265,8 +3535,41 @@ function trapezoidGeo(lenB, lenT, widB, widT, hgt){
 const carMats = {};
 function carPaint(hex){
   const key = 'carPaint_' + hex;
-  if(!carMats[key]) carMats[key] = stdMat({ color: hex, roughness: 0.26, metalness: 0.6, envMapIntensity: 0.8 });
+  if(!carMats[key]) carMats[key] = stdMat({
+    color: hex, roughness: 0.13, metalness: 0.45,
+    envMap: envTex(), envMapIntensity: 1.0,
+    roughnessMap: texPaintFlake()
+  });
   return carMats[key];
+}
+
+/* 헤드라이트 빛 원뿔 (모든 차량 공용 재질 — 밤엔 은은하게, 낮 주행엔 아주 옅게) */
+let _beamNight = null, _beamDay = null;
+function beamMaterial(night){
+  if(night && !_beamNight) _beamNight = new THREE.MeshBasicMaterial({
+    color: 0xfff0c6, transparent: true, opacity: 0.16, alphaMap: texBeamGrad(),
+    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false
+  });
+  if(!night && !_beamDay) _beamDay = new THREE.MeshBasicMaterial({
+    color: 0xfff6dc, transparent: true, opacity: 0.06, alphaMap: texBeamGrad(),
+    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false
+  });
+  return night ? _beamNight : _beamDay;
+}
+function refreshCarBeams(){
+  const on = (city.night || 0) > 0.28;
+  const mat = beamMaterial(on);
+  const list = (city.cars || []).slice();
+  if(typeof worldVehicles !== 'undefined') worldVehicles.forEach(v => list.push(v));
+  for(const c of list){
+    const bs = c && c.userData && c.userData.beams;
+    if(!bs) continue;
+    const driving = !!(S && S.vehicle && typeof worldVehicles !== 'undefined' && worldVehicles.get(S.vehicle) === c);
+    for(const b of bs){
+      b.material = mat;
+      b.visible = on || driving;
+    }
+  }
 }
 
 const CAR_SPEC = {
@@ -3296,7 +3599,7 @@ function makeCar(kind, color, simple){
   if(kind !== 'van') g.add(boxMesh(W - 0.08, 0.1, 0.85, paintM, 0, 0.30 + sp.bodyH + 0.02, -L / 2 + 0.45));
 
   /* 캐빈 (유리) */
-  const cab = new THREE.Mesh(trapezoidGeo(sp.lenB, sp.lenT, sp.widB, sp.widT, sp.cabinH), M.glassDark);
+  const cab = new THREE.Mesh(trapezoidGeo(sp.lenB, sp.lenT, sp.widB, sp.widT, sp.cabinH), M.carGlass);
   cab.position.set(0, 0.30 + sp.bodyH + 0.04, sp.roofZ);
   cab.castShadow = false;
   g.add(cab);
@@ -3347,6 +3650,27 @@ function makeCar(kind, color, simple){
       g.add(sp2);
     });
   }
+
+  /* 헤드라이트 빛 원뿔 — 야간/주행 시 앞쪽에 은은하게 보임 */
+  const beams = [];
+  const beamLen = simple ? 8 : 9.5;
+  const beamGeo = geo('flatBeam_' + beamLen, () => {
+    const cg = new THREE.ConeGeometry(1.28, beamLen, 12, 1, true);
+    return cg;
+  });
+  const bMat = beamMaterial(false);
+  (simple ? [0] : [-1, 1]).forEach(sd => {
+    const cone = new THREE.Mesh(beamGeo, bMat);
+    cone.rotation.x = -Math.PI / 2 + 0.045;
+    cone.scale.set(1, 1, 0.55);
+    cone.position.set(sd * (W / 2 - 0.30), Math.max(0.15, hy - 0.2), L / 2 + beamLen / 2);
+    cone.visible = false;
+    cone.renderOrder = 3;
+    cone.userData.noShadow = true;
+    g.add(cone);
+    beams.push(cone);
+  });
+  g.userData.beams = beams;
 
   /* 사이드미러 */
   if(!simple){
@@ -4084,7 +4408,12 @@ function updateDriving(dt, inp){
     /* 브레이크등 */
     if(vm.userData.tailMat){
       const braking = throttle < -0.05 || keys[' '];
-      vm.userData.tailMat.emissiveIntensity = braking ? 3.0 : 1.0 + lightState.night * 0.6;
+      vm.userData.tailMat.emissiveIntensity = braking ? 3.0 : 1.0 + (lightState.night || 0) * 0.6;
+    }
+    /* 헤드라이트 빛 원뿔 — 밤이거나 실제로 달리는 중에만 */
+    if(vm.userData.beams){
+      const bOn = ((typeof city !== 'undefined' && city.night) || 0) > 0.28 || Math.abs(drive.speed) > 1;
+      for(const bm of vm.userData.beams) bm.visible = bOn;
     }
     /* 배기 연기 · 먼지 */
     if(Math.abs(drive.speed) > 5 && Math.random() < 0.75){
@@ -4115,6 +4444,7 @@ function mountVehicle(id){
   if(cockpit && id === 'car') setCockpitColor(0xff5252);
   sfx('door');
   toast(VEHICLES.find(v => v.id === id).name + ' 탑승 · 조이스틱으로 운전', 'good');
+  if(typeof refreshCarBeams === 'function') refreshCarBeams();
   updateActionButton();
   saveNow('mount');
 }
@@ -4132,6 +4462,7 @@ function dismountVehicle(){
   S.x = ox; S.z = oz;
   showVehicleMesh(id, false);
   player.group.visible = true;
+  if(typeof refreshCarBeams === 'function') refreshCarBeams();
   sfx('door');
   toast('내렸어요');
   updateActionButton();
@@ -4156,6 +4487,7 @@ function spawnWorldVehicles(){
     scene.add(m);
     worldVehicles.set(id, m);
   });
+  if(typeof refreshCarBeams === 'function') refreshCarBeams();
 }
 
 function defaultVehPos(id){
@@ -4907,6 +5239,19 @@ function openSettings(){
       soundOn = !soundOn; safeSet('life3d_sound', soundOn ? '1' : '0');
       toast(soundOn ? '사운드 켜짐' : '사운드 꺼짐'); redrawSheet();
     }},
+    { sec:'시간 흐름 · ' + timeSpeedText() },
+    ...TIME_SPEEDS.map(t => ({
+      id:'speed_' + t.id, icon:t.icon, label:'시간 ' + t.label + (timeMode === t.id ? ' · 사용 중' : ''),
+      sub: t.id === 'pause' ? '시간이 멈춰요 (행동은 그대로 가능)' : '1시간 = ' + Math.round(60 / Math.max(0.01, MIN_PER_SEC_BASE * t.mult)) + '초',
+      note: timeMode === t.id ? 'ON' : '', noteClass:'free', style: timeMode === t.id ? 'gold' : '',
+      run: () => { setTimeMode(t.id, true); toast(t.icon + ' 시간 ' + t.label, 'good'); sfx('ok'); redrawSheet(); }
+    })),
+    { id:'nextyear', icon:'🌅', label:'다음 해로 넘기기', sub:'지금은 ' + S.year + '년 ' + S.age + '세 · 한 해를 보내요', note:(S.year + 1) + '년', style:'gold', run: () => {
+      endYear('manual');
+      logExec(S.age + '세, 스스로 한 해를 정리하고 다음 해를 맞았다.');
+      sfx('level');
+      redrawSheet();
+    }},
     { sec:'인생' },
     { id:'newgame', icon:'🌱', label:'새 인생 시작', sub:'지금 저장은 지워져요', style:'', run: () => {
       if(confirm('정말 새 인생을 시작할까요? 지금 저장은 사라져요.')){
@@ -5081,7 +5426,53 @@ function startNextGen(){
    ========================================================= */
 let hourAcc = 0;
 let eventTimer = 24;
-const MIN_PER_SEC = 20; // 1초 = 게임 20분 (1시간 = 3초)
+/* 시간 흐름 — 예전에는 1초 = 게임 20분이라 하루가 72초 만에 지나가 버렸다.
+   이제 기본(보통)은 1초 = 5분 → 1시간 = 12초, 하루 = 4분 48초. (약 4배 느려짐) */
+const MIN_PER_SEC_BASE = 5;
+const TIME_SPEEDS = [
+  { id:'slow',   label:'천천히', icon:'🐢', mult:0.45 },
+  { id:'normal', label:'보통',   icon:'🚶', mult:1   },
+  { id:'pause',  label:'정지',   icon:'⏸️', mult:0   }
+];
+let timeMode = 'normal';
+function timeSpeedDef(){
+  for(const t of TIME_SPEEDS) if(t.id === timeMode) return t;
+  return TIME_SPEEDS[1];
+}
+function minPerSec(){ return MIN_PER_SEC_BASE * timeSpeedDef().mult; }
+function timeSpeedText(){
+  const d = timeSpeedDef();
+  if(d.id === 'pause') return '시간이 멈춰 있어요';
+  const secPerHour = Math.round(60 / Math.max(0.01, minPerSec()));
+  return '1시간 = ' + secPerHour + '초 · 하루 = ' + Math.round(secPerHour * 24 / 60) + '분';
+}
+function setTimeMode(id, silent){
+  if(!TIME_SPEEDS.some(t => t.id === id)) id = 'normal';
+  timeMode = id;
+  if(S && S.flags) S.flags.timeMode = id;
+  updateTimeBadge();
+  if(!silent){
+    const d = timeSpeedDef();
+    toast(d.icon + ' 시간 ' + d.label + ' · ' + timeSpeedText(), d.id === 'pause' ? '' : 'good');
+    sfx('tap');
+    if(S) saveNow('timeMode');
+  }
+}
+function cycleTimeMode(){
+  const i = TIME_SPEEDS.findIndex(t => t.id === timeMode);
+  setTimeMode(TIME_SPEEDS[(i + 1) % TIME_SPEEDS.length].id);
+}
+function updateTimeBadge(){
+  const b = document.getElementById('hudSpeed');
+  if(b) b.textContent = timeSpeedDef().icon;
+  const cb = document.getElementById('clockbox');
+  if(cb) cb.classList.toggle('paused', timeMode === 'pause');
+}
+function applyTimeMode(){
+  timeMode = (S && S.flags && S.flags.timeMode) ? S.flags.timeMode : 'normal';
+  if(!TIME_SPEEDS.some(t => t.id === timeMode)) timeMode = 'normal';
+  updateTimeBadge();
+}
 
 const AGE = { partTime:15, job:19, univ:18, invest:20, drive:19, marry:24, retire:58 };
 
@@ -5191,11 +5582,14 @@ function endYear(reason){
 
 function tickTime(dt){
   if(!S || paused || !gameStarted) return;
+  if(timeMode === 'pause'){ updateMinimap(dt); return; }
+  const mps = minPerSec();
   S.playSec += dt;
-  S.minutes += dt * MIN_PER_SEC;
+  S.minutes += dt * mps;
   if(S.minutes >= 1440){ S.minutes -= 1440; endYear('clock'); }
 
-  hourAcc += dt / 3;
+  /* 스탯 변화는 '게임 1시간'마다 — 시간을 느리게 해도 하루의 체력·허기 소모량은 그대로 */
+  hourAcc += dt * mps / 60;
   while(hourAcc >= 1){
     hourAcc -= 1;
     S.stats.hp = clamp(S.stats.hp - 0.4, 0, 100);
@@ -6309,6 +6703,7 @@ function startGame(isNew){
   const ld = document.getElementById('loading');
   if(ld) ld.classList.add('hidden');
   paused = false;
+  applyTimeMode();
   applyLoadedState();
   if(isNew){
     toast(S.age + '세, 인생이 시작됐어요!', 'gold');
@@ -6416,6 +6811,7 @@ function bindInput(){
 
   /* 버튼 */
   wireTap(document.getElementById('actBtn'), interactTarget);
+  wireTap(document.getElementById('clockbox'), () => { initAudio(); if(!S) return; cycleTimeMode(); });
   wireTap(document.getElementById('btnCam'), () => { initAudio(); toggleCamera(); });
   wireTap(document.getElementById('btnDiary'), () => { initAudio(); sfx('page'); if(!S) return; openDiary(); });
   wireTap(document.getElementById('btnBag'), () => { initAudio(); sfx('page'); if(!S) return; openBag(); });
@@ -6520,6 +6916,9 @@ window.__game = {
   spot(id){ const s = SPOTS.find(x => x.id === id); if(s) openSpot(s); },
   npc(id){ const a = npcActors.find(x => x.def.id === id); if(a) openNPC(a); },
   addTime, endYear, saveNow, updateHUD, openSettings, openMap, openBag, openDiary,
+  setTime(mode){ setTimeMode(mode); },
+  timeInfo(){ return { mode: timeMode, minPerSec: minPerSec(), mult: timeSpeedDef().mult }; },
+  timeSpeedText, cycleTimeMode,
   event(){ streetEvent(); },
   setStat(k, v){ S.stats[k] = v; updateHUD(); },
   addMoney, unlock, closeSheet, showEnding,
