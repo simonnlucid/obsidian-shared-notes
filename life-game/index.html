@@ -2550,24 +2550,16 @@ function buildShop(grp, b){
   const signW = Math.min(W * 0.6, 7.4);
   const signH = signW * 0.26;
   const signY = H + signH * 0.55;
-  const signBoxMat = [M.darkMetal, M.darkMetal, M.darkMetal, M.darkMetal, M.darkMetal, M.darkMetal];
-  const signBox = new THREE.Mesh(boxGeo(signW, signH, 0.4), signBoxMat);
+  const st = signTexture(b.sign, '#fff8e8');
+  const faceMat = stdMat({ map: st, emissive: 0xffffff, emissiveMap: st, emissiveIntensity: 0.12, roughness: 0.5 });
+  city.nightMats.push(faceMat);
+  faceMat.userData.night = 1.0;
+  const signBox = new THREE.Mesh(boxGeo(signW, signH, 0.4),
+    [M.darkMetal, M.darkMetal, M.darkMetal, M.darkMetal, faceMat, faceMat]);
   signBox.position.set(0, signY, frontZ - 0.5);
   signBox.castShadow = false;
+  signBox.userData.noShadow = true;
   grp.add(signBox);
-  /* 간판 발광면 */
-  const st = signTexture(b.sign, '#fff8e8');
-  const faceMat = stdMat({ map: st, emissive: 0xffffff, emissiveMap: st, emissiveIntensity: 0.1, roughness: 0.5 });
-  city.nightMats.push(faceMat);
-  faceMat.userData.night = 1.1;
-  const face = new THREE.Mesh(new THREE.PlaneGeometry(signW, signH), faceMat);
-  face.position.set(0, signY, frontZ - 0.29);
-  face.userData.noShadow = true;
-  grp.add(face);
-  const face2 = face.clone();
-  face2.rotation.y = Math.PI;
-  face2.position.z = frontZ - 0.71;
-  grp.add(face2);
 
   /* 옥상 구조 */
   grp.add(boxMesh(W + 0.4, 0.4, D + 0.4, M.concreteDark, 0, H + 0.2, 0));
