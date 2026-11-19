@@ -828,7 +828,7 @@ function freshState(name, gender){
     lover: null,
     spouse: null,
     retired: false,
-    x: SC(-100), z: SC(27), yaw: Math.PI,
+    x: SC(-100), z: SC(27), yaw: 0,
     npcs: { minjun: 22, seoyeon: 6, jiwoo: 6, haneul: 6, realtor: 12, boss: 8 },
     diary: [
       { age: START_AGE, year: START_YEAR, text: '열 살, 처음으로 혼자 동네를 걸어 나왔다. 아직 모든 게 낯설고 신기하다.' }
@@ -1494,7 +1494,7 @@ function noShadow(o){
    ========================================================= */
 let renderer = null, scene = null, camera = null;
 const city = { buildings:[], markers:[], cars:[], lamps:[], group:null, nightMats:[], glowSprites:[] };
-const camState = { yaw: Math.PI, pitch: 0.36, dist: 8.2, height: 4.2, fov: 58, targetDist: 8.2, mode:'third', allowAuto:1, fpPitch:0, baseFov:58 };
+const camState = { yaw: 0, pitch: 0.30, dist: 8.6, height: 4.2, fov: 58, targetDist: 8.6, mode:'third', allowAuto:1, fpPitch:0, baseFov:58 };
 
 const COL = {
   grass:0x6cae5c, road:0x4c5058, sidewalk:0xbdb6a6, water:0x5fb3e6
@@ -3940,7 +3940,7 @@ function toggleCamera(){
     camState.fpPitch = 0;
     if(player.group) player.group.visible = false;
     if(player.vehicleMesh) player.vehicleMesh.visible = false;
-    toast(S && S.vehicle === 'car' ? '1인칭 운전석 · V키로 전환' : '1인칭 시점 · V키로 전환');
+    toast(S && S.vehicle === 'car' ? '1인칭 운전석 · 🎥 버튼으로 전환' : '1인칭 시점 · 🎥 버튼으로 전환');
   } else {
     if(player.group) player.group.visible = true;
     if(player.vehicleMesh && S && S.vehicle) player.vehicleMesh.visible = true;
