@@ -196,7 +196,7 @@ h2{font-size:11px;letter-spacing:.3em;color:#74c4dd;margin-bottom:12px;font-weig
 #loadErr{position:fixed;left:12px;bottom:12px;z-index:99;max-width:70vw;color:#ff8a8a;font-size:12px;white-space:pre-wrap}
 
 /* ================= 1v1 SPLIT HUD ================= */
-#duelHud{position:fixed;inset:0;z-index:6;pointer-events:none;opacity:0;transition:opacity .3s}
+#duelHud{position:fixed;inset:0;z-index:9;pointer-events:none;opacity:0;transition:opacity .3s}
 #duelHud.on{opacity:1}
 #duelHud .ddivider{position:absolute;background:linear-gradient(90deg,rgba(80,200,255,.05),rgba(120,235,255,.55),rgba(80,200,255,.05));box-shadow:0 0 18px rgba(60,200,255,.35);z-index:2}
 #duelHud.split-v .ddivider{left:50%;top:0;width:2px;height:100%;margin-left:-1px}
@@ -276,6 +276,34 @@ h2{font-size:11px;letter-spacing:.3em;color:#74c4dd;margin-bottom:12px;font-weig
 .ltab.on{color:#04151b;background:linear-gradient(100deg,#37e6c0,#7cf2ff);border-color:transparent;font-weight:700}
 .mapPick{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:9px;letter-spacing:.22em;color:#6f97a8}
 #loadoutRows{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px}
+/* 라이벌 로드아웃 시트 · 대전 중 로드아웃 버튼 */
+#loadSheet{z-index:70}
+#loadSheet .sheetPanel{width:min(620px,94vw);text-align:left}
+#loadSheet .sheetNote{font-size:11px;line-height:1.6;color:#8fb6c8;margin:6px 0 12px}
+#loadSheet .loadout{margin:0 0 14px}
+#sheetRows{display:grid;grid-template-columns:1fr;gap:7px}
+#loadSheet .llabel{min-width:64px}
+#loadSheet .chip{padding:9px 13px;font-size:13px}
+#loadSheet .ltab{padding:9px 14px;font-size:11px}
+#loadSheet .sheetBtns{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+#loadSheet .sheetBtns .btn.big{flex:1 1 220px}
+.sheetOpenRow{margin-top:10px;text-align:right}
+#duelHud .dload{position:absolute;left:14px;top:42px;pointer-events:auto;z-index:7;padding:6px 12px;font-size:11px}
+@media(max-width:760px){#duelHud .dload{top:38px;left:10px;font-size:10px;padding:5px 10px}}
+/* 1~4 슬롯 바 (탭 전환) */
+.dslots{position:absolute;left:50%;transform:translateX(-50%);bottom:12px;display:flex;gap:6px;pointer-events:auto;z-index:5}
+.dslot{position:relative;cursor:pointer;font-family:inherit;min-width:56px;padding:7px 9px 5px;border-radius:7px;background:rgba(9,20,27,.7);border:1px solid rgba(120,200,230,.22);color:#9fc4d4;display:flex;flex-direction:column;align-items:center;gap:1px;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+.dslot .k{font-size:9px;color:#6f97a8;letter-spacing:.12em}
+.dslot .n{font-size:9.5px;letter-spacing:.06em;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.dslot.on{border-color:rgba(120,235,255,.9);background:rgba(16,50,64,.88);color:#eafcff;box-shadow:0 0 12px rgba(70,220,255,.28)}
+.dslot.on .k{color:#8ef0ff}
+body.touching .dslots{bottom:172px}
+body.touching .dslot{min-width:62px;padding:9px 10px 7px}
+body.touching .dslot .n{font-size:10px;letter-spacing:0}
+/* 세로 2인 스플릿: 각 절반이 짧아 슬롯 바를 체력바/스틱 위로 올린다 */
+body.touching #duelHud.split-h .dslots{bottom:180px}
+body.touching #duelHud.split-h .dslot{min-width:64px;padding:6px 7px 5px}
+body.touching #duelHud.split-h .dslot .n{font-size:8.5px}
 .lrow{display:flex;align-items:center;gap:8px}
 .llabel{font-size:10px;letter-spacing:.1em;color:#7fa4b6;min-width:52px}
 .chips{display:flex;gap:5px;flex-wrap:wrap}
@@ -524,6 +552,91 @@ body.touching .btn.mode{min-width:100%}
   .btn.ghost:hover{background:transparent}
 }
 
+/* ================= 가로 모드 (iPhone 가로 844×390 등) =================
+   세로→가로 회전 시 로비·로드아웃·HUD·터치 버튼·2인 스플릿이 잘리거나
+   겹쳐 "찌그러진" 화면이 되지 않도록 컴팩트하게 재배치한다. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .overlay{padding:6px 10px}
+  /* --- 로비 --- */
+  #lobby .panel{padding:12px 18px;width:min(960px,98vw);max-height:calc(100vh - 10px);overflow-y:auto}
+  #lobby .brand{margin-bottom:2px;font-size:10px}
+  #lobby h1{font-size:clamp(20px,4vw,28px);margin:2px 0 4px}
+  #lobby .sub{display:none}
+  #lobby .sect{font-size:10px;margin:8px 0 4px}
+  #lobby .coinBar{padding:4px 8px;font-size:9.5px;gap:6px}
+  #lobby .modes{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0}
+  #lobby .btn.mode{padding:7px 8px;min-height:0;min-width:0;text-align:left}
+  #lobby .btn.mode b{font-size:11.5px;line-height:1.25}
+  #lobby .btn.mode span{font-size:8.5px;line-height:1.25}
+  #lobby .roomRow{gap:6px}
+  #lobby .pwInput{max-width:150px;padding:6px 8px;font-size:11px}
+  #lobby .btn.big{padding:7px 10px;font-size:11px}
+  #lobby .netStatus{font-size:9px;line-height:1.35;margin-top:3px;padding:4px 7px}
+  #loadoutRows{grid-template-columns:1fr 1fr;gap:4px 14px}
+  .loadout{margin:8px 0;padding:8px 10px}
+  .ltabs{margin-bottom:4px;gap:4px;flex-wrap:nowrap;overflow:hidden}
+  .ltab{padding:4px 7px;font-size:9px;letter-spacing:.1em}
+  .mapPick{font-size:8.5px;gap:3px;flex:0 0 auto}
+  .mapPick .chip{padding:2px 5px;font-size:9px}
+  .lrow{gap:5px}
+  .llabel{min-width:46px;font-size:9px}
+  .chip{padding:3px 6px;font-size:9.5px}
+  #lobby .grid3{display:none}            /* 가로: 조작 설명은 접어서 로드아웃이 먼저 보이게 */
+  #lobby .foot{display:none}
+  .skinLine{font-size:9px;margin-top:6px}
+  /* --- 로드아웃 시트 --- */
+  #loadSheet .sheetPanel{width:min(760px,98vw);padding:12px 16px;max-height:calc(100vh - 8px);overflow-y:auto}
+  #loadSheet h1{font-size:20px;margin:2px 0 4px}
+  #loadSheet .sheetNote{font-size:9.5px;margin:3px 0 8px;line-height:1.45}
+  #loadSheet .loadout{margin:0 0 8px;padding:8px 10px}
+  #sheetRows{grid-template-columns:1fr 1fr;gap:4px 12px}
+  #loadSheet .chip{padding:6px 9px;font-size:11px}
+  #loadSheet .ltab{padding:6px 10px;font-size:10px}
+  #loadSheet .sheetBtns .btn.big{flex:0 1 auto}
+  /* --- 대전 HUD --- */
+  #duelScore{font-size:13px;padding:1px 9px;top:2px;gap:6px}
+  #duelScore .slab{font-size:7px}
+  .dbar{top:5px;font-size:9px;gap:6px}
+  .dbar .dk{font-size:8px;padding:1px 6px}
+  .dbar .dk i{font-size:12px}
+  #duelHud .dload{left:6px;right:auto;top:50%;bottom:auto;transform:translateY(-50%);font-size:8.5px;padding:6px 5px;line-height:1.2}
+  .dbar2{left:10px;bottom:8px;gap:6px}
+  .dhp{width:104px;height:8px}
+  .dnum{font-size:10px}
+  .dammo{right:10px;bottom:6px}
+  .dammo b{font-size:20px}
+  .dammo span{font-size:10px}
+  .dhint{display:none}
+  #duelHud .dslots{bottom:6px;gap:4px}
+  .dslot{min-width:46px;padding:4px 6px 3px}
+  .dslot .n{font-size:8px}
+  .dslot .k{font-size:7.5px}
+  body.touching #duelHud .dslots{top:44px;bottom:auto;height:26px}
+  body.touching .dslot{min-width:44px;padding:2px 6px;box-sizing:border-box;height:26px}
+  body.touching .dslot .n{font-size:9px}
+  body.touching #duelHud .dbar2{bottom:6px}
+  body.touching #duelHud .dammo{top:8px;right:6px;line-height:1}
+  body.touching #duelHud .dammo b{font-size:16px}
+  body.touching #duelHud .dammo span{font-size:9px}
+  body.touching #duelHud .dammo em{font-size:7px;letter-spacing:.12em}
+  /* 좌우 스플릿: 각 진영 탄약을 이름 아래(바깥쪽)로 내려 중앙 점수와 겹치지 않게 */
+  body.touching #duelHud.split-v .dammo{top:26px;right:auto;left:10px;text-align:left}
+  body.touching #duelHud.split-v #dHalfB .dammo{left:auto;right:10px;text-align:right}
+  .dcross{--gap:5px}
+  .drespawn{font-size:10px;padding:5px 10px}
+  #duelFeed{top:34px}
+  #duelFeed .kf{font-size:9px}
+  #duelPhase{font-size:22px;top:26%}
+  /* 2인 스플릿 경계선은 각 절반 안쪽에 그린다 */
+  #duelHud.split-v .ddivider{left:50%;width:1.5px}
+  #duelHud.split-h .ddivider{top:50%;height:1.5px}
+  #duelHud.split-v #dHalfB .dbar{right:8px;top:5px}
+  /* --- 터치 버튼 --- */
+  body.touching .tpad.solo .tbtns{right:6px;bottom:6px}
+  .tpad.solo .tstick{width:92px;height:92px;left:8px;bottom:8px}
+  .tbtn{font-size:9px}
+}
+
 </style>
 </head>
 <body>
@@ -662,6 +775,7 @@ body.touching .btn.mode{min-width:100%}
       <span class="dnum" id="dA_hpnum">100</span>
     </div>
     <div class="dammo"><b id="dA_mag">30</b><span id="dA_res">/180</span><em id="dA_wname">AR-9</em></div>
+    <div class="dslots" id="dSlotsA"></div>
     <div class="drespawn hidden" id="dA_respawn">라운드 패배</div>
     <div class="dscope"><i class="scv"></i><i class="sch"></i></div>
     <div class="dhint" id="dA_hint">클릭 사격 · WASD 이동 · R 재장전 · G 유틸 · Space 점프 · C 슬라이딩 · Ctrl 앉기 · B 이모트</div>
@@ -677,11 +791,13 @@ body.touching .btn.mode{min-width:100%}
       <span class="dnum" id="dB_hpnum">100</span>
     </div>
     <div class="dammo"><b id="dB_mag">30</b><span id="dB_res">/180</span><em id="dB_wname">AR-9</em></div>
+    <div class="dslots" id="dSlotsB"></div>
     <div class="drespawn hidden" id="dB_respawn">라운드 패배</div>
     <div class="dscope"><i class="scv"></i><i class="sch"></i></div>
     <div class="dhint" id="dB_hint">/ 사격 · 방향키 이동 · ,/. 회전 · Shift 장전 · N 유틸 · L 점프</div>
   </div>
   <div id="duelScore"><span id="dsA">0</span><em>:</em><span id="dsB">0</span><div class="slab">5선승</div></div>
+  <button class="btn ghost small dload" id="dLoadBtn">로드아웃</button>
   <div id="duelFeed"></div>
   <div id="duelPhase"></div>
   <div id="duelBoard" class="hidden">
@@ -752,6 +868,7 @@ body.touching .btn.mode{min-width:100%}
         </div>
       </div>
       <div id="loadoutRows"></div>
+      <div class="sheetOpenRow"><button class="btn ghost small" id="btnLoadoutLobby">라이벌 로드아웃 시트 열기 · 대전 시작</button></div>
       <div class="skinLine" id="skinLine">장착 스킨: <b id="skinName">전술 블랙</b> · <button class="btn ghost small" id="btnShop2">스킨 상점 열기</button></div>
     </div>
 
@@ -762,9 +879,9 @@ body.touching .btn.mode{min-width:100%}
           <kbd>W A S D</kbd><span>이동 · <kbd>Shift</kbd> 달리기</span>
           <kbd>마우스</kbd><span>조준 · 클릭 사격 / 우클릭 정조준</span>
           <kbd>R</kbd><span>재장전</span>
-          <kbd>1 - 3</kbd><span>주·보조·근접 무기</span>
+          <kbd>1 - 4</kbd><span>주무기 1·2 / 보조 / 근접 무기</span>
           <kbd>G</kbd><span>유틸리티 (수류탄 / 회복킷)</span>
-          <kbd>Space</kbd><span>점프 · <kbd>C</kbd> 슬라이딩</span>
+          <kbd>Space</kbd><span>점프 · <kbd>C</kbd> 슬라이딩(슬라이딩 중 점프=길게 날기)</span>
           <kbd>Ctrl</kbd><span>앉기 (공중에서도 앉기 점프)</span>
           <kbd>B</kbd><span>이모트 휠</span>
         </div>
@@ -774,7 +891,7 @@ body.touching .btn.mode{min-width:100%}
         <div class="keys duelkeys">
           <kbd>P1 WASD</kbd><span>이동 · <kbd>Space</kbd> 점프 · <kbd>C</kbd> 슬라이딩 · <kbd>Ctrl</kbd> 앉기 · <kbd>B</kbd> 이모트</span>
           <kbd>P1 Q / E</kbd><span>좌우 회전 (에임 보조)</span>
-          <kbd>P1 F</kbd><span>사격 · <kbd>R</kbd> 장전 · <kbd>1~3</kbd> 무기 · <kbd>G</kbd> 유틸</span>
+          <kbd>P1 F</kbd><span>사격 · <kbd>R</kbd> 장전 · <kbd>1~4</kbd> 무기 · <kbd>G</kbd> 유틸</span>
           <kbd>P2 방향키</kbd><span>이동 · <kbd>L</kbd> 점프 · <kbd>K</kbd> 슬라이딩 · <kbd>J</kbd> 앉기 · <kbd>H</kbd> 이모트</span>
           <kbd>P2 , / .</kbd><span>좌우 회전</span>
           <kbd>P2 / 또는 Enter</kbd><span>사격 · <kbd>Shift</kbd> 장전 · <kbd>M</kbd> 무기 · <kbd>N</kbd> 유틸</span>
@@ -866,6 +983,22 @@ body.touching .btn.mode{min-width:100%}
 </div>
 
 <div id="touchUI" class="hidden"></div>
+<div id="loadSheet" class="overlay hidden">
+  <div class="panel sheetPanel">
+    <div class="brand"><span class="dot"></span><span>라이벌 로드아웃 · 탭해서 바로 선택</span></div>
+    <h1 style="font-size:28px">무기 <em>로드아웃</em></h1>
+    <div class="sheetNote">슬롯 1 · 주무기 1 / 슬롯 2 · 주무기 2 / 슬롯 3 · 보조무기 / 슬롯 4 · 근접무기. 경기 중 PC는 1~4 키, 모바일은 하단 슬롯을 탭하면 바로 바뀝니다.</div>
+    <div class="ltabs" id="sheetTabs">
+      <button class="ltab on" data-p="0">플레이어 1</button>
+      <button class="ltab" data-p="1">플레이어 2 · 봇</button>
+    </div>
+    <div class="loadout"><div id="sheetRows"></div></div>
+    <div class="sheetBtns">
+      <button class="btn big" id="btnSheetGo">이 로드아웃으로 전투 시작</button>
+      <button class="btn ghost small" id="btnSheetClose">닫기</button>
+    </div>
+  </div>
+</div>
 <div id="loadErr"></div>
 
 <script>
@@ -885,6 +1018,16 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
    ========================================================================= */
 const V3 = THREE.Vector3;
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+/* 화면비에 맞춘 세로 FOV — 기준 16:10에서의 수평 화각(≈106°)을 유지한다.
+   넓은 화면(가로 모드·데스크톱)에서 세로 FOV 80을 그대로 쓰면 수평 128°가 되어
+   화면 끝이 블랙홀처럼 빨려드는 어안 왜곡이 생긴다. 좁은 화면은 기존 값을 유지한다. */
+function vFovForAspect(aspect, base) {
+  const B = base || 80;
+  const a = clamp(aspect || 1.6, 0.35, 3.4);
+  const hHalf = Math.atan(Math.tan(B * Math.PI / 360) * 1.6);
+  const v = 2 * Math.atan(Math.tan(hHalf) / a) * 180 / Math.PI;
+  return clamp(v, 58, B);
+}
 const lerp = (a, b, t) => a + (b - a) * t;
 const damp = (a, b, l, dt) => lerp(a, b, 1 - Math.exp(-l * dt));
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -1761,6 +1904,7 @@ const P = {
   hp: 100, armor: 100, maxHp: 100, maxArmor: 100,
   height: 1.8, radius: 0.34, eye: 1.66,
   grounded: true, sprinting: false, crouching: false, sliding: false, slideT: 0,
+  airSlide: false, airSpd: 0, landSlide: 0,
   bobPhase: 0, bobAmt: 0, speedXZ: 0, alive: true,
   recoilPitch: 0, recoilYaw: 0, punch: 0, roll: 0, landKick: 0,
   slideDir: new V3(), lastHurt: -99, shake: 0, shakeT: 0,
@@ -1794,7 +1938,7 @@ document.addEventListener('pointerlockchange', () => {
 });
 
 /* ---------- keyboard ---------- */
-const WEAPON_KEYS = ['Digit1', 'Digit2', 'Digit3'];
+const WEAPON_KEYS = ['Digit1', 'Digit2', 'Digit3', 'Digit4'];
 addEventListener('keydown', (e) => {
   if (e.code === 'Tab') e.preventDefault();
   if (INPUT.keys[e.code]) return;
@@ -1843,9 +1987,24 @@ addEventListener('wheel', (e) => {
 
 /* ---------- player physics ---------- */
 function tryJump() {
-  if (!P.grounded || P.sliding) return;
+  if (!P.grounded) return;
+  if (P.sliding) { slideJump(); return; }              // 슬라이딩 중 점프 = 슬라이딩 점프
   if (P.crouching) { P.crouching = false; P.height = 1.8; P.eye = 1.66; }   // 앉기에서 바로 일어서 점프
   P.vel.y = 7.4;
+  P.grounded = false;
+  Sfx.jump();
+}
+/* 슬라이딩 점프: 슬라이딩을 풀고, 슬라이딩의 수평 추진력(12.5m/s)을 공중에서도 유지해 앞으로 길게 난다 */
+function slideJump() {
+  const sp = Math.hypot(P.vel.x, P.vel.z);
+  let dx = P.slideDir.x, dz = P.slideDir.z;
+  if (sp > 0.5) { dx = P.vel.x / sp; dz = P.vel.z / sp; }
+  const out = Math.max(sp, 12.5) * 1.04;
+  P.sliding = false; P.slideT = 0; P.crouching = false;
+  P.height = 1.8; P.eye = 1.66;
+  P.airSlide = true; P.airSpd = out;
+  P.vel.x = dx * out; P.vel.z = dz * out;
+  P.vel.y = 7.6;
   P.grounded = false;
   Sfx.jump();
 }
@@ -1950,7 +2109,14 @@ function updatePlayer(dt, time) {
   if (P.sliding) spd = 0;
 
   const acc = P.grounded ? (P.sliding ? 3.2 : 15) : 4.2;
-  if (P.sliding) {
+  if (P.airSlide && !P.grounded) {
+    // 슬라이딩 점프: 공중 감속을 거의 주지 않고 슬라이딩 방향 추진력을 유지한다
+    const sp = Math.hypot(P.vel.x, P.vel.z);
+    const adx = sp > 0.001 ? P.vel.x / sp : P.slideDir.x;
+    const adz = sp > 0.001 ? P.vel.z / sp : P.slideDir.z;
+    P.vel.x = damp(P.vel.x, adx * P.airSpd, 2.2, dt);
+    P.vel.z = damp(P.vel.z, adz * P.airSpd, 2.2, dt);
+  } else if (P.sliding) {
     // 슬라이딩은 누른 방향으로 끝까지 밀고 나간다(입력 여부와 무관) — 끝에서는 자연스럽게 줄어든다
     const k = clamp(P.slideT / 0.92, 0.28, 1);
     P.vel.x = damp(P.vel.x, P.slideDir.x * 12.5 * k, 9, dt);
@@ -1985,6 +2151,15 @@ function updatePlayer(dt, time) {
   }
   if (P.pos.y < 0) { P.pos.y = 0; P.vel.y = 0; P.grounded = true; }
   if (P.grounded && P.landPadT > 0) { P.landPadT -= dt; if (P.landPadT <= 0) Sfx.padLand(); }
+  if (P.grounded && P.airSlide) { P.airSlide = false; P.landSlide = 0.24; }
+  if (P.landSlide > 0) {
+    // 착지 직후에는 급정지 대신 짧게 미끄러지며 일반 이동 속도로 돌아온다
+    P.landSlide = Math.max(0, P.landSlide - dt);
+    if (!P.sliding) {
+      P.vel.x = damp(P.vel.x, wx * spd, 6.5, dt);
+      P.vel.z = damp(P.vel.z, wz * spd, 6.5, dt);
+    }
+  }
   if (!wasGrounded && P.grounded && P.vel.y === 0) {
     const jp2 = padAt(P.pos.x, P.pos.z, P.pos.y);
     if (jp2) P.landPadT = 0.1;
@@ -2031,8 +2206,9 @@ function updateCamera(dt) {
     P.yaw + P.recoilYaw,
     P.roll + bobX * 0.25 + slideK * 0.14
   );
-  // fov
-  FOV.target = W.scoped ? 16 : (W.ads > 0.02 ? lerp(FOV.base, currentW().adsFov || 58, W.ads) : FOV.base);
+  // fov — 화면비에 맞춰 세로 FOV를 잡아 가로 모드에서 어안 왜곡이 생기지 않게 한다
+  const baseFov = vFovForAspect(camera.aspect, 80);
+  FOV.target = W.scoped ? 16 : (W.ads > 0.02 ? lerp(baseFov, currentW().adsFov || 58, W.ads) : baseFov);
   if (P.sprinting) FOV.target += 6;
   if (P.sliding) FOV.target += 9;
   FOV.cur = damp(FOV.cur, FOV.target, W.scoped ? 22 : 13, dt);
@@ -2081,6 +2257,7 @@ function resetPlayer() {
   P.hp = 100; P.armor = 100; P.alive = true;
   P.sliding = false; P.crouching = false; P.grounded = true;
   P.slideT = 0; P.slideK = 0; P.eyeSmooth = P.eye;
+  P.airSlide = false; P.airSpd = 0; P.landSlide = 0;
   P.recoilPitch = 0; P.recoilYaw = 0; P.punch = 0; P.shake = 0;
   P.lastHurt = -99;
 }
@@ -2520,6 +2697,32 @@ function modelSniper() {
   return { group: g, muzzle: muzzleAt(g, 0, 0.012, -0.98), hip: [0.20, -0.215, -0.32], ads: [0, -0.088, -0.24] };
 }
 
+/* ---------- semi-auto rifle (DMR) ---------- */
+function modelDMR() {
+  const g = new THREE.Group();
+  bx(g, 0.07, 0.08, 0.42, GUNMAT.metal2, 0, 0.014, -0.12);
+  bx(g, 0.05, 0.028, 0.34, GUNMAT.metal, 0, 0.06, -0.14);
+  bx(g, 0.06, 0.072, 0.30, GUNMAT.poly, 0, 0.004, -0.40);
+  for (let i = 0; i < 5; i++) bx(g, 0.064, 0.052, 0.014, GUNMAT.poly2, 0, 0.006, -0.30 - i * 0.05);
+  cy(g, 0.015, 0.015, 0.48, GUNMAT.metal, 0, 0.016, -0.75, Math.PI / 2, 0, 0, 14);
+  cy(g, 0.025, 0.025, 0.075, GUNMAT.metal2, 0, 0.016, -0.99, Math.PI / 2, 0, 0, 14);
+  bx(g, 0.03, 0.022, 0.09, GUNMAT.metal2, 0, 0.062, -0.55);
+  // low-profile scope
+  cy(g, 0.028, 0.028, 0.24, GUNMAT.metal2, 0, 0.118, -0.11, Math.PI / 2, 0, 0, 16);
+  cy(g, 0.024, 0.024, 0.005, GUNMAT.glass, 0, 0.118, -0.232, Math.PI / 2, 0, 0, 16);
+  cy(g, 0.024, 0.024, 0.005, GUNMAT.glass, 0, 0.118, 0.012, Math.PI / 2, 0, 0, 16);
+  bx(g, 0.024, 0.04, 0.026, GUNMAT.metal2, 0, 0.09, -0.20);
+  bx(g, 0.024, 0.04, 0.026, GUNMAT.metal2, 0, 0.09, -0.02);
+  const mag = new THREE.Group(); mag.position.set(0, -0.082, -0.135); mag.rotation.x = 0.18; g.add(mag);
+  bx(mag, 0.05, 0.16, 0.08, GUNMAT.poly2, 0, 0, 0);
+  bx(mag, 0.052, 0.02, 0.083, GUNMAT.poly, 0, -0.08, 0);
+  bx(g, 0.048, 0.11, 0.062, GUNMAT.poly, 0, -0.08, 0.02, -0.32);
+  bx(g, 0.046, 0.085, 0.22, GUNMAT.tan, 0, 0.0, 0.16);
+  bx(g, 0.052, 0.105, 0.03, GUNMAT.tan, 0, -0.012, 0.285);
+  bx(g, 0.006, 0.008, 0.22, GUNMAT.accent, 0.037, 0.0, -0.30);
+  return { group: g, muzzle: muzzleAt(g, 0, 0.016, -1.03), hip: [0.20, -0.215, -0.34], ads: [0, -0.088, -0.26], mag: mag };
+}
+
 /* ---------- rocket launcher ---------- */
 function modelRocket() {
   const g = new THREE.Group();
@@ -2594,9 +2797,13 @@ function modelHeal() {
 }
 
 /* ---------- arsenal ---------- */
+/* 전투 밸런스 (요청 #12287 · #12296): 모든 무기 · 피격 피해를 34% 하향.
+   대미지 계산 지점(사격/근접/폭발/피격)에서 한 번만 곱해 숫자 표시와 실제 피해를 맞춘다. */
+const DMG_SCALE = 0.66;
 const WDEF = {
   rifle: { id: 'rifle', name: 'AR-9 카빈', ko: '돌격소총', slot: 'primary', kind: 'gun', dmg: 23, head: 2.0, rpm: 720, auto: true, mag: 30, reserve: 180, reload: 1.9, spreadHip: 0.018, spreadAds: 0.005, rec: 0.8, adsFov: 58, pellets: 1, range: 170, shell: 1, bullet: 'rifle', color: 0xffc07a, build: modelRifle, icon: 'rifle' },
-  sniper: { id: 'sniper', name: 'AX-50 스나이퍼', ko: '스나이퍼', slot: 'primary', kind: 'gun', dmg: 150, head: 2.1, rpm: 46, auto: false, mag: 5, reserve: 30, reload: 2.5, spreadHip: 0.05, spreadAds: 0.0006, rec: 3.2, adsFov: 16, pellets: 1, range: 260, shell: 1, bullet: 'sniper', color: 0x9ff0ff, scope: true, pierce: 2, build: modelSniper, icon: 'sniper' },
+  dmr: { id: 'dmr', name: 'M-14 소총', ko: '일반 소총', slot: 'primary', kind: 'gun', dmg: 44, head: 2.05, rpm: 190, auto: false, semi: true, mag: 10, reserve: 60, reload: 2.1, spreadHip: 0.013, spreadAds: 0.0016, rec: 2.0, adsFov: 36, pellets: 1, range: 220, shell: 1, bullet: 'rifle', color: 0xffd58a, build: modelDMR, icon: 'rifle' },
+  sniper: { id: 'sniper', name: 'AX-50 스나이퍼', ko: '스나이퍼', slot: 'primary', kind: 'gun', dmg: 112, head: 2.1, rpm: 46, auto: false, mag: 5, reserve: 30, reload: 2.5, spreadHip: 0.05, spreadAds: 0.0006, rec: 3.2, adsFov: 16, pellets: 1, range: 260, shell: 1, bullet: 'sniper', color: 0x9ff0ff, scope: true, pierce: 2, build: modelSniper, icon: 'sniper' },
   shotgun: { id: 'shotgun', name: 'M870 브리처', ko: '샷건', slot: 'primary', kind: 'gun', dmg: 15, head: 2.0, rpm: 78, auto: false, mag: 7, reserve: 42, reload: 2.7, spreadHip: 0.072, spreadAds: 0.046, rec: 2.6, adsFov: 62, pellets: 8, range: 42, shell: 1, bullet: 'shotgun', color: 0xffb060, build: modelShotgun, icon: 'shotgun' },
   rocket: { id: 'rocket', name: 'RPG-7 로켓', ko: '로켓', slot: 'primary', kind: 'gun', dmg: 135, head: 1.0, rpm: 52, auto: false, mag: 3, reserve: 6, reload: 3.0, spreadHip: 0.02, spreadAds: 0.008, rec: 3.6, adsFov: 54, pellets: 1, range: 300, shell: 0, bullet: 'rocket', color: 0xff8a3a, projectile: true, blast: 5.6, build: modelRocket, icon: 'rocket' },
   pistol: { id: 'pistol', name: '글록 17', ko: '권총', slot: 'secondary', kind: 'gun', dmg: 34, head: 2.0, rpm: 340, auto: false, mag: 12, reserve: 60, reload: 1.05, spreadHip: 0.011, spreadAds: 0.0022, rec: 1.0, adsFov: 66, pellets: 1, range: 150, shell: 1, bullet: 'pistol', color: 0xffd08a, build: modelPistol, icon: 'pistol' },
@@ -2607,13 +2814,15 @@ const WDEF = {
   grenade: { id: 'grenade', name: '수류탄', ko: '수류탄', slot: 'utility', kind: 'grenade', count: 2, blast: 6.0, dmg: 115, build: modelGrenade, icon: 'util' },
   heal: { id: 'heal', name: '회복킷', ko: '회복킷', slot: 'utility', kind: 'heal', count: 2, heal: 55, build: modelHeal, icon: 'util' },
 };
-const PRIMARY = ['rifle', 'sniper', 'shotgun', 'rocket'];
+const PRIMARY = ['rifle', 'dmr', 'sniper', 'shotgun', 'rocket'];
+const PRIMARY2 = ['dmr', 'rifle', 'rocket', 'shotgun', 'sniper'];
 const SECONDARY = ['pistol', 'revolver', 'uzi'];
 const MELEE = ['katana', 'knife'];
 const UTILITY = ['grenade', 'heal'];
-const DEFAULT_LOADOUT = { primary: 'rifle', secondary: 'pistol', melee: 'katana', utility: 'grenade' };
+const DEFAULT_LOADOUT = { primary: 'rifle', primary2: 'dmr', secondary: 'pistol', melee: 'katana', utility: 'grenade' };
 
-function slotIds(loadout) { return [loadout.primary, loadout.secondary, loadout.melee]; }
+// 1~4번 슬롯: 주무기 · 주무기 2 · 보조무기 · 근접무기
+function slotIds(loadout) { return [loadout.primary, loadout.primary2 || 'dmr', loadout.secondary, loadout.melee]; }
 function wdef(id) { return WDEF[id]; }
 
 /* ---------- audio ---------- */
@@ -2989,7 +3198,7 @@ function fireWeapon() {
       if (ud.enemy) {
         if (hitEnemies.indexOf(ud.enemy) >= 0) continue;
         hitEnemies.push(ud.enemy);
-        let dmg = w.dmg;
+        let dmg = w.dmg * DMG_SCALE;
         const part = ud.part || 'body';
         if (h.distance > 25 && w.id === 'shotgun') dmg *= clamp(1 - (h.distance - 25) / 30, 0.25, 1);
         if (part === 'head') dmg *= w.head;
@@ -3016,7 +3225,7 @@ function meleeAttack(w) {
   W.swing = 1; W.swingDir = W.swingDir > 0 ? -1 : 1;
   W.combo = (G.time < W.comboEnd) ? Math.min(4, W.combo + 1) : 1;
   W.comboEnd = G.time + 0.95;
-  const dmg = w.dmg * (1 + (W.combo - 1) * 0.22);
+  const dmg = w.dmg * DMG_SCALE * (1 + (W.combo - 1) * 0.22);
   Sfx.swing(W.combo >= 3);
 
   // lunge
@@ -3144,12 +3353,12 @@ function updateRockets(dt) {
     r.trail += dt;
     if (r.trail > 0.02) { r.trail = 0; FX.smoke(r.mesh.position.clone(), 0.2, 0.55); }
     if (boom || r.mesh.position.y < 0.15) {
-      explode(r.mesh.position.clone(), 5.6, 135, r.owner);
+      explode(r.mesh.position.clone(), WDEF.rocket.blast || 5.6, WDEF.rocket.dmg || 135, r.owner);
       scene.remove(r.mesh); ROCKETS.splice(i, 1);
       continue;
     }
     r.life -= dt;
-    if (r.life <= 0) { explode(r.mesh.position.clone(), 5.6, 135, r.owner); scene.remove(r.mesh); ROCKETS.splice(i, 1); }
+    if (r.life <= 0) { explode(r.mesh.position.clone(), WDEF.rocket.blast || 5.6, WDEF.rocket.dmg || 135, r.owner); scene.remove(r.mesh); ROCKETS.splice(i, 1); }
   }
 }
 
@@ -3165,7 +3374,7 @@ function explode(pos, radius, dmg, owner) {
     const d = Math.hypot(c.x - pos.x, c.y + 0.9 - pos.y, c.z - pos.z);
     if (d < radius) {
       const falloff = clamp(1 - d / radius, 0.15, 1);
-      hitEnemy(e, dmg * falloff, c.clone().setY(c.y + 1), new V3(0, 1, 0), false, { id: 'rocket' }, 'body');
+      hitEnemy(e, dmg * falloff * DMG_SCALE, c.clone().setY(c.y + 1), new V3(0, 1, 0), false, { id: 'rocket' }, 'body');
       if (!e.dead) {
         const kb = new V3(c.x - pos.x, 0, c.z - pos.z);
         if (kb.lengthSq() < 0.01) kb.set(rnd(-1, 1), 0, rnd(-1, 1));
@@ -3175,7 +3384,7 @@ function explode(pos, radius, dmg, owner) {
     }
   }
   const pd = Math.hypot(P.pos.x - pos.x, P.pos.y + 0.9 - pos.y, P.pos.z - pos.z);
-  if (pd < radius * 0.85) damagePlayer(34 * clamp(1 - pd / (radius * 0.85), 0.25, 1), pos);
+  if (pd < radius * 0.85) damagePlayer(34 * DMG_SCALE * clamp(1 - pd / (radius * 0.85), 0.25, 1), pos);
 }
 
 'use strict';
@@ -4011,12 +4220,12 @@ class Enemy {
     FX.enemyTracer(o, target, hit);
     FX.muzzle(o, { id: this.type === 'heavy' ? 'shotgun' : 'rifle' });
     Sfx.nz(0.1, this.type === 'heavy' ? 1800 : 3200, 400, 0.10, 'bandpass', 1);
-    if (hit) damagePlayer(def.dmg * rnd(0.85, 1.15), this.pos);
+    if (hit) damagePlayer(def.dmg * DMG_SCALE * rnd(0.85, 1.15), this.pos);
 
     // shield bash
     if (this.type === 'shield' && dist < 3.0) {
       this.fireCd = 1.4;
-      damagePlayer(17, this.pos);
+      damagePlayer(17 * DMG_SCALE, this.pos);
       P.punch += 0.03;
       Sfx.land();
     }
@@ -4357,11 +4566,18 @@ function updateUtilityHUD() {
 }
 
 /* ---------- loadout UI ---------- */
-const L_CATS = [['primary', '주무기', PRIMARY], ['secondary', '보조무기', SECONDARY], ['melee', '근접무기', MELEE], ['utility', '유틸리티', UTILITY]];
+const L_CATS = [['primary', '주무기 1', PRIMARY], ['primary2', '주무기 2', PRIMARY2], ['secondary', '보조무기', SECONDARY], ['melee', '근접무기', MELEE], ['utility', '유틸리티', UTILITY]];
 let lPlayer = 0;
 function buildLoadoutUI() {
-  const rows = $('loadoutRows');
-  if (!rows) return;
+  for (const rowsId of ['loadoutRows', 'sheetRows']) {
+    const rows = $(rowsId);
+    if (rows) buildLoadoutRows(rows);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.ltab'), (t) => {
+    t.classList.toggle('on', +t.dataset.p === lPlayer);
+  });
+}
+function buildLoadoutRows(rows) {
   rows.innerHTML = '';
   for (const [cat, label, list] of L_CATS) {
     const row = document.createElement('div');
@@ -4370,21 +4586,60 @@ function buildLoadoutUI() {
     const chips = row.querySelector('.chips');
     for (const id of list) {
       const b = document.createElement('button');
-      b.className = 'chip' + (LOADOUTS[lPlayer][cat] === id ? ' on' : '');
+      b.className = 'chip' + ((LOADOUTS[lPlayer][cat] || DEFAULT_LOADOUT[cat]) === id ? ' on' : '');
       b.dataset.id = id;
       b.dataset.cat = cat;
       b.textContent = WDEF[id].ko;
       onTap(b, () => {
         LOADOUTS[lPlayer][cat] = id;
-        Array.prototype.forEach.call(chips.querySelectorAll('.chip'), (c) => c.classList.toggle('on', c.dataset.id === id));
+        syncLoadoutChips(cat, id);
+        applyLoadoutLive();
       });
       chips.appendChild(b);
     }
     rows.appendChild(row);
   }
-  Array.prototype.forEach.call(document.querySelectorAll('.ltab'), (t) => {
-    t.classList.toggle('on', +t.dataset.p === lPlayer);
+}
+/* 하나의 로드아웃 상태를 로비 시즌 모든 칩에 동기화 */
+function syncLoadoutChips(cat, id) {
+  Array.prototype.forEach.call(document.querySelectorAll('#loadoutRows .chip[data-cat="' + cat + '"], #sheetRows .chip[data-cat="' + cat + '"]'), (c) => {
+    c.classList.toggle('on', c.dataset.id === id);
   });
+}
+/* 대전 중 로드아웃 변경 → 그 자리에서 무기 슬롯 교체 */
+function applyLoadoutLive() {
+  if (G.mode !== 'duel' || !DUEL.active || !DUEL.fighters.length) {
+    if (G.mode === 'solo' && G.state === 'playing') rebuildSoloWeapons();
+    return;
+  }
+  for (const f of DUEL.fighters) {
+    const l = LOADOUTS[f.i === 0 ? 0 : 1];
+    f.loadout = Object.assign({}, l);
+    f.ids = slotIds(f.loadout);
+    rebuildFighterWeapons(f);
+  }
+}
+function rebuildSoloWeapons() {
+  W.loadout = Object.assign({}, LOADOUTS[0]);
+  buildSoloWeapons();
+  W.i = 0;
+  for (let i = 0; i < W.models.length; i++) W.models[i].group.visible = i === 0;
+  W.mag = W.ids.map((id) => WDEF[id].mag || 0);
+  W.reserve = W.ids.map((id) => WDEF[id].reserve || 0);
+  updateWeaponHUD();
+  buildWeaponBar();
+}
+function openLoadSheet(onStart) {
+  const sheet = $('loadSheet');
+  if (!sheet) return false;
+  sheet.dataset.onStart = onStart ? '1' : '';
+  sheet.classList.remove('hidden');
+  buildLoadoutUI();
+  return true;
+}
+function closeLoadSheet() {
+  const sheet = $('loadSheet');
+  if (sheet) sheet.classList.add('hidden');
 }
 
 /* ---------- HUD ---------- */
@@ -4694,6 +4949,7 @@ function frame(now) {
   }
 }
 function frameStep(now) {
+  checkViewportChange();
   let dt = (now - _last) / 1000;
   _last = now;
   if (dt > 0.06) dt = 0.06;
@@ -4761,13 +5017,45 @@ function drawDuelFps() {
 }
 
 /* ---------- resize ---------- */
+let _lastVW = 0, _lastVH = 0;
+function viewSize() {
+  // iOS Safari는 회전 직후 innerWidth/Height 반영이 늦다 → visualViewport를 우선 사용
+  const vv = window.visualViewport;
+  const w = Math.max(1, Math.round((vv && vv.width) || innerWidth || 1));
+  const h = Math.max(1, Math.round((vv && vv.height) || innerHeight || 1));
+  return { w, h };
+}
 function onResize() {
-  const w = innerWidth, h = innerHeight;
+  const { w, h } = viewSize();
+  _lastVW = w; _lastVH = h;
   renderer.setSize(w, h, false);
   camera.aspect = w / h; camera.updateProjectionMatrix();
   vmCam.aspect = w / h; vmCam.fov = (w / h) < 1 ? 72 : 55; vmCam.updateProjectionMatrix();
-  if (G.mode === 'duel' && DUEL.active) duelSplit();
-  document.body.classList.toggle('touching', TOUCH.enabled);
+  try {
+    if (typeof DUEL !== 'undefined' && DUEL.fighters) {
+      for (const f of DUEL.fighters) if (f.cam) { f.cam.aspect = w / h; f.cam.updateProjectionMatrix(); }
+      if (G.mode === 'duel' && DUEL.active) duelSplit();
+    }
+  } catch (e) { /* 부팅 초기(p7 로드 전)에는 무시 */ }
+  if (typeof TOUCH !== 'undefined') document.body.classList.toggle('touching', TOUCH.enabled);
+  if (typeof layoutTouch === 'function') layoutTouch();
+}
+/* 회전 직후에는 innerHeight가 늦게 바뀌므로 여러 번 다시 잰다 */
+function scheduleResize() {
+  onResize();
+  [60, 140, 260, 420, 700].forEach((ms) => setTimeout(() => { try { onResize(); } catch (e) { } }, ms));
+}
+function watchViewport() {
+  addEventListener('resize', scheduleResize);
+  addEventListener('orientationchange', scheduleResize);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', scheduleResize);
+    window.visualViewport.addEventListener('scroll', scheduleResize);
+  }
+}
+function checkViewportChange() {
+  const { w, h } = viewSize();
+  if (Math.abs(w - _lastVW) > 1 || Math.abs(h - _lastVH) > 1) onResize();
 }
 G.mapId = 'dock';
 let ARENA_MAP = 'dock';
@@ -4803,6 +5091,17 @@ function setMap(id) {
   onTapId('btnPractice', safeStart(() => startGame(true)));
   onTapId('btnBot', safeStart(() => startDuelGame('bot')));
   onTapId('btnPvp', safeStart(() => startDuelGame('pvp')));
+  // 라이벌 스타일 로드아웃 선택 시트
+  onTapId('btnLoadoutLobby', safeStart(() => openLoadSheet(false)));
+  onTapId('dLoadBtn', safeStart(() => openLoadSheet(false)));
+  onTapId('btnSheetClose', safeStart(() => closeLoadSheet()));
+  onTapId('btnSheetGo', safeStart(() => {
+    const sheet = $('loadSheet');
+    const startMode = sheet && sheet.dataset.onStart;
+    closeLoadSheet();
+    if (startMode === 'bot') startDuelGame('bot');
+    else if (startMode === 'pvp') startDuelGame('pvp');
+  }));
   onTapId('btnResume', safeStart(() => resumeGame()));
   onTapId('btnQuit', safeStart(() => goLobby()));
   onTapId('btnRetry', safeStart(() => startGame(G.practice)));
@@ -4908,8 +5207,15 @@ window.__GAME = {
     buildLoadoutUI();
   },
   getLoadout(p) { return Object.assign({}, LOADOUTS[p]); },
+  slotIds(p) { return slotIds(LOADOUTS[p]); },
+  openSheet(startMode) { return openLoadSheet(startMode || false); },
+  closeSheet() { closeLoadSheet(); },
+  sheetOpen() { const s = $('loadSheet'); return !!s && !s.classList.contains('hidden'); },
+  dslots(i) { const h = document.getElementById(i === 1 ? 'dSlotsB' : 'dSlotsA'); return h ? Array.prototype.map.call(h.children, (c) => ({ i: +c.dataset.i, on: c.classList.contains('on'), label: c.textContent })) : []; },
+  slide() { if (G.mode === 'solo') trySlide(); else { const f = DUEL.fighters[0]; if (f) f.inp.slideTouch = true; } },
+  jump() { if (G.mode === 'solo') tryJump(); else { const f = DUEL.fighters[0]; if (f) f.inp.jumpTouch = true; } },
   setMap(id) { setMap(id); },
-  select(i) { selectWeapon(i); },
+  select(i) { selectWeapon(i); if (G.mode === 'duel' && DUEL.fighters[0]) duelSelect(DUEL.fighters[0], i); },
   fire() { if (G.mode === 'solo') pressFire(); else if (DUEL.fighters[0]) duelFire(DUEL.fighters[0], WDEF[DUEL.fighters[0].ids[DUEL.fighters[0].wi]]); },
   aim(on) { INPUT.ads = !!on; if (G.mode === 'duel' && DUEL.fighters[0]) DUEL.fighters[0].inp.adsTouch = !!on; },
   reload() { if (G.mode === 'solo') startReload(); else duelReload(DUEL.fighters[0]); },
@@ -5082,6 +5388,7 @@ function createFighter(i, scheme, loadout, name) {
     ads: 0, scoped: false, scopedHide: 0, pump: 0, swing: 0, swingDir: 1, combo: 0, comboEnd: 0,
     grounded: true, speedXZ: 0, bobPhase: 0, bobAmt: 0, recoilPitch: 0, recoilYaw: 0, punch: 0, shake: 0,
     walking: 0, crouching: false, sliding: false, slideT: 0, slideDir: new V3(), sprinting: false,
+    airSlide: false, airSpd: 0, landSlide: 0, eyeSmooth: 1.66, heldFire: false,
     prev: Object.create(null), lastHurt: -99, hitFlash: 0,
     inp: { tF: 0, tR: 0, fireTouch: false, adsTouch: false, reloadTouch: false, jumpTouch: false, swapTouch: false, slideTouch: false, utilTouch: false, crouchTouch: false, lookDX: 0, lookDY: 0 },
     bot: { strafe: 1, strafeT: 0, aimErr: 0, jumpT: 0, utilT: 0, target: new V3(), react: 0, slideT: 0,
@@ -5157,8 +5464,8 @@ function ensureFighters(mode) {
   for (const f of DUEL.fighters) applyFighterSkin(f);
   D_EL.A.name.textContent = DUEL.fighters[0].name;
   D_EL.B.name.textContent = DUEL.fighters[1].name;
-  D_EL.A.hint.textContent = mode === 'pvp' ? 'F 사격 · Q/E 회전 · 1~3 무기 · G 유틸 · R 장전 · Space 점프 · Ctrl 앉기 · B 이모트'
-    : '클릭 사격 · WASD 이동 · R 장전 · G 유틸 · Space 점프 · C 슬라이딩 · Ctrl 앉기 · B 이모트';
+  D_EL.A.hint.textContent = mode === 'pvp' ? 'F 사격 · Q/E 회전 · 1~4 무기 · G 유틸 · R 장전 · Space 점프 · C 슬라이딩·점프 · B 이모트'
+    : '클릭 사격 · WASD 이동 · 1~4 무기 · R 장전 · G 유틸 · Space 점프 · C 슬라이딩(중 점프=슬라이딩 점프) · B 이모트';
   D_EL.B.hint.textContent = '/ 사격 · ,/. 회전 · M 무기 · N 유틸 · Shift 장전 · L 점프 · J 앉기';
 }
 
@@ -5175,6 +5482,7 @@ function resetRoundFighter(f, spawn, yaw) {
   f.reloading = false; f.reloadT = 0; f.nextFire = 0; f.switchT = 0;
   f.kick = 0; f.ads = 0; f.scoped = false; f.recoilPitch = 0; f.recoilYaw = 0;
   f.speedXZ = 0; f.combo = 0; f.swing = 0; f.sliding = false; f.slideT = 0; f.crouching = false;
+  f.airSlide = false; f.airSpd = 0; f.landSlide = 0; f.eyeSmooth = f.eye; f.heldFire = false;
   f.wi = Math.min(f.wi, f.ids.length - 1);
   for (let i = 0; i < f.vm.models.length; i++) f.vm.models[i].group.visible = i === f.wi;
   f.model.group.position.copy(f.pos);
@@ -5229,6 +5537,13 @@ function startRound(side, fromNet) {
   const pb = atA ? SPAWN_B : SPAWN_A;
   resetRoundFighter(a, pa, yawTo(pa, pb));
   resetRoundFighter(b, pb, yawTo(pb, pa));
+  // 스폰 안전장치: 두 진영이 20m 이상 떨어져 있게 한다(겹쳐 생성 → 시작하자마자 사살 방지)
+  const gap = Math.hypot(a.pos.x - b.pos.x, a.pos.z - b.pos.z);
+  if (gap < 20) {
+    const mx = clamp(-a.pos.x, -HALF + 2, HALF - 2), mz = clamp(-a.pos.z, -HALF + 2, HALF - 2);
+    const far = new V3(mx, 0, mz);
+    resetRoundFighter(b, far, yawTo(far, a.pos));
+  }
   DUEL.phase = 'countdown';
   DUEL.phaseT = 3.0;
   DUEL.count = 3;
@@ -5354,6 +5669,44 @@ function duelSelect(f, i) {
   f.reloading = false; f.reloadT = 0; f.switchT = 0.25;
   Sfx.switchW();
 }
+/* 로드아웃을 바꾸면 그 자리에서 1~4 슬롯 모델·탄창을 다시 구성한다 (로드아웃 시트) */
+function rebuildFighterWeapons(f) {
+  for (const m of f.vm.models) f.vm.root.remove(m.group);
+  f.vm.models = f.ids.map((id) => {
+    const b = buildWeaponModel(id);
+    b.group.visible = false;
+    b.group.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
+    f.vm.root.add(b.group);
+    return b;
+  });
+  f.wi = clamp(f.wi, 0, f.ids.length - 1);
+  f.mag = f.ids.map((id) => WDEF[id].mag || 0);
+  f.reserve = f.ids.map((id) => WDEF[id].reserve || 0);
+  f.util = WDEF[f.loadout.utility].count || 0;
+  f.reloading = false; f.reloadT = 0; f.switchT = 0; f.nextFire = 0; f.heldFire = false;
+  for (let i = 0; i < f.vm.models.length; i++) f.vm.models[i].group.visible = i === f.wi;
+  buildDuelSlots(f);
+}
+/* 하단 1~4 슬롯 바 (모바일 탭 / PC 1~4 키) */
+function buildDuelSlots(f) {
+  const holder = document.getElementById(f.i === 0 ? 'dSlotsA' : 'dSlotsB');
+  if (!holder) return;
+  holder.innerHTML = '';
+  for (let i = 0; i < f.ids.length; i++) {
+    const w = WDEF[f.ids[i]];
+    const b = document.createElement('button');
+    b.className = 'dslot';
+    b.dataset.i = i;
+    b.innerHTML = '<span class="k">' + (i + 1) + '</span><span class="n">' + w.ko + '</span>';
+    b.addEventListener('pointerdown', (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      if (G.state !== 'playing' && G.state !== 'paused') return;
+      duelSelect(f, i);
+    });
+    holder.appendChild(b);
+  }
+  f._slotKey = f.ids.join(',');
+}
 
 function readDuelInput(f, dt) {
   const k = INPUT.keys, inp = f.inp;
@@ -5377,6 +5730,7 @@ function readDuelInput(f, dt) {
     if (keyEdge(f, 'Digit1')) duelSelect(f, 0);
     if (keyEdge(f, 'Digit2')) duelSelect(f, 1);
     if (keyEdge(f, 'Digit3')) duelSelect(f, 2);
+    if (keyEdge(f, 'Digit4')) duelSelect(f, 3);
     f.sprinting = !!(k.ShiftLeft || k.ShiftRight) && fwd > 0 && f.grounded && !f.crouching;
   } else if (f.scheme === 'keys1') {
     fwd = (k.KeyW ? 1 : 0) - (k.KeyS ? 1 : 0);
@@ -5392,6 +5746,7 @@ function readDuelInput(f, dt) {
     if (keyEdge(f, 'Digit1')) duelSelect(f, 0);
     if (keyEdge(f, 'Digit2')) duelSelect(f, 1);
     if (keyEdge(f, 'Digit3')) duelSelect(f, 2);
+    if (keyEdge(f, 'Digit4')) duelSelect(f, 3);
   } else if (f.scheme === 'keys2') {
     fwd = (k.ArrowUp ? 1 : 0) - (k.ArrowDown ? 1 : 0);
     strafe = (k.ArrowRight ? 1 : 0) - (k.ArrowLeft ? 1 : 0);
@@ -5471,7 +5826,7 @@ function readDuelInput(f, dt) {
 
   if (!f.alive || DUEL.phase !== 'live') {
     wx = 0; wz = 0; fire = false; reload = false; jump = false; swap = false; util = false;
-    f.sliding = false;
+    f.sliding = false; f.airSlide = false; f.heldFire = false;
   }
 
   let spd = 6.6;
@@ -5484,15 +5839,42 @@ function readDuelInput(f, dt) {
     const k = clamp(f.slideT / 0.88, 0.28, 1);
     f.vel.x = damp(f.vel.x, f.slideDir.x * 12.5 * k, 9, dt);
     f.vel.z = damp(f.vel.z, f.slideDir.z * 12.5 * k, 9, dt);
+  } else if (f.airSlide && !f.grounded) {
+    // 슬라이딩 점프: 공중에서도 슬라이딩 추진력을 거의 잃지 않는다
+    const asp = Math.hypot(f.vel.x, f.vel.z);
+    const adx = asp > 0.001 ? f.vel.x / asp : f.slideDir.x;
+    const adz = asp > 0.001 ? f.vel.z / asp : f.slideDir.z;
+    f.vel.x = damp(f.vel.x, adx * f.airSpd, 2.2, dt);
+    f.vel.z = damp(f.vel.z, adz * f.airSpd, 2.2, dt);
+  } else if (f.landSlide > 0) {
+    // 착지 직후: 급정지하지 않고 짧게 미끄러지며 일반 이동 속도로 복귀
+    f.landSlide = Math.max(0, f.landSlide - dt);
+    f.vel.x = damp(f.vel.x, wx * spd, 6.5, dt);
+    f.vel.z = damp(f.vel.z, wz * spd, 6.5, dt);
   } else {
     f.vel.x = damp(f.vel.x, wx * spd, 14, dt);
     f.vel.z = damp(f.vel.z, wz * spd, 14, dt);
   }
   f.vel.y -= 24 * dt;
   f.crouching = crouch && !f.sliding;
-  if (jump && f.grounded && !f.sliding) {
-    f.vel.y = 7.3; f.grounded = false; f.crouching = false; Sfx.jump();
+  if (jump && f.grounded) {
+    if (f.sliding) {
+      // 슬라이딩 점프: 슬라이딩을 풀고 수평 추진력을 살짝 부스트해 길게 난다
+      const ssp = Math.hypot(f.vel.x, f.vel.z);
+      let sdx = f.slideDir.x, sdz = f.slideDir.z;
+      if (ssp > 0.5) { sdx = f.vel.x / ssp; sdz = f.vel.z / ssp; }
+      const out = Math.max(ssp, 12.5) * 1.04;
+      f.sliding = false; f.slideT = 0; f.crouching = false;
+      f.airSlide = true; f.airSpd = out;
+      f.vel.x = sdx * out; f.vel.z = sdz * out;
+      f.vel.y = 7.6; f.grounded = false;
+      Sfx.jump();
+    } else {
+      f.vel.y = 7.3; f.grounded = false; f.crouching = false; Sfx.jump();
+    }
   }
+  // 눈높이 전환을 부드럽게(슬라이딩 해제/앉기)
+  f.eyeSmooth = damp(f.eyeSmooth === undefined ? f.eye : f.eyeSmooth, f.sliding ? 1.15 : (f.crouching ? 1.22 : f.eye), 20, dt);
 
   f.sprinting = f.sprinting || false;
   fighterMove(f, dt);
@@ -5509,7 +5891,9 @@ function readDuelInput(f, dt) {
   f.comboEnd = Math.max(0, f.comboEnd - dt);
 
   const w = WDEF[f.ids[f.wi]];
-  if (fire) duelFire(f, w);
+  // 반자동(일반 소총)은 누르고 있어도 한 발씩: 트리거를 다시 눌러야 다음 탄
+  if (fire && !(w.semi && f.heldFire)) duelFire(f, w);
+  f.heldFire = fire;
   duelWeaponAnim(f, dt);
 }
 
@@ -5548,6 +5932,7 @@ function fighterMove(f, dt) {
   else if (f.pos.y <= sup && prevY >= sup - 0.62) { f.pos.y = sup; f.vel.y = 0; f.grounded = true; }
   else f.grounded = f.pos.y <= sup + 0.02;
   if (f.pos.y < 0) { f.pos.y = 0; f.vel.y = 0; f.grounded = true; }
+  if (f.grounded && f.airSlide) { f.airSlide = false; f.landSlide = 0.24; }   // 슬라이딩 점프 착지
 
   f.speedXZ = Math.hypot(f.vel.x, f.vel.z);
   f.bobAmt = damp(f.bobAmt, f.grounded ? Math.min(1, f.speedXZ / 8) : 0, 8, dt);
@@ -5609,10 +5994,11 @@ const _mz2 = new V3();
 function updateFighterCamera(f) {
   const bobY = Math.sin(f.bobPhase * 2) * 0.03 * f.bobAmt;
   const bobX = Math.cos(f.bobPhase) * 0.026 * f.bobAmt;
-  const eye = f.sliding ? 1.15 : (f.crouching ? 1.22 : f.eye);
+  const eye = f.eyeSmooth === undefined ? (f.sliding ? 1.15 : (f.crouching ? 1.22 : f.eye)) : f.eyeSmooth;
   f.cam.position.set(f.pos.x + bobX, f.pos.y + eye + bobY, f.pos.z);
   f.cam.rotation.set(f.pitch + f.recoilPitch + f.punch, f.yaw + f.recoilYaw, bobX * 0.2 + (f.sliding ? 0.12 : 0));
-  f.cam.fov = f.scoped ? 17 : lerp(80, WDEF[f.ids[f.wi]].adsFov || 60, f.ads);
+  const baseFov = vFovForAspect(f.cam.aspect, 80);   // 스플릿 뷰포트 비율에 맞춘 세로 FOV(어안 왜곡 방지)
+  f.cam.fov = f.scoped ? 17 : lerp(baseFov, WDEF[f.ids[f.wi]].adsFov || 60, f.ads);
   f.cam.updateProjectionMatrix();
   f.cam.updateMatrixWorld();
 }
@@ -5661,7 +6047,7 @@ function duelFire(f, w) {
       const h = hits[hi];
       const ud = h.object.userData;
       if (ud.fighter) {
-        let dmg = w.dmg * (PVP_DMG[w.id] !== undefined ? PVP_DMG[w.id] : 1);
+        let dmg = w.dmg * DMG_SCALE * (PVP_DMG[w.id] !== undefined ? PVP_DMG[w.id] : 1);
         const head = ud.part === 'head';
         if (head) dmg *= w.head;
         if (w.id === 'shotgun') dmg *= clamp(1 - h.distance / 32, 0.3, 1);
@@ -5724,7 +6110,7 @@ function duelMelee(f, w) {
   f.swing = 1; f.swingDir = f.swingDir > 0 ? -1 : 1;
   f.combo = (G.time < f.comboEnd) ? Math.min(4, f.combo + 1) : 1;
   f.comboEnd = G.time + 0.95;
-  const dmg = w.dmg * (1 + (f.combo - 1) * 0.22);
+  const dmg = w.dmg * DMG_SCALE * (1 + (f.combo - 1) * 0.22);
   Sfx.swing(f.combo >= 3);
   const fx = -Math.sin(f.yaw), fz = -Math.cos(f.yaw);
   f.vel.x += fx * w.lunge * 0.55;
@@ -5789,6 +6175,7 @@ function duelDamage(attacker, target, dmg, head, point) {
 }
 
 function duelExplode(pos, radius, dmg, owner) {
+  dmg *= DMG_SCALE;   // 폭발(로켓·수류탄)도 같은 밸런스 적용
   for (const f of DUEL.fighters) {
     if (!f.alive) continue;
     const d = Math.hypot(f.pos.x - pos.x, f.pos.y + 0.9 - pos.y, f.pos.z - pos.z);
@@ -6038,6 +6425,14 @@ function updateDuelHUD(dt) {
   }
   D_EL.scoreA.textContent = DUEL.score[0];
   D_EL.scoreB.textContent = DUEL.score[1];
+  for (const f of DUEL.fighters) {
+    // 1~4 슬롯 바: 로드아웃/현재 슬롯이 바뀌면 다시 그린다
+    const holder = document.getElementById(f.i === 0 ? 'dSlotsA' : 'dSlotsB');
+    if (!holder) continue;
+    const key = f.ids.join(',');
+    if (f._slotKey !== key) buildDuelSlots(f);
+    for (let i = 0; i < holder.children.length; i++) holder.children[i].classList.toggle('on', i === f.wi);
+  }
   if (DUEL.boardOn) updateDuelBoard();
 }
 
@@ -6124,6 +6519,13 @@ function duelSplit() {
     : [{ x: 0, y: vh - h2, w: vw, h: h2 }, { x: 0, y: 0, w: vw, h: h2 }];
   D_EL.root.classList.toggle('split-v', sideBySide);
   D_EL.root.classList.toggle('split-h', !sideBySide);
+  // 계산한 뷰포트 비율을 카메라에 바로 반영 (렌더 프레임을 기다리지 않는다)
+  for (let i = 0; i < rects.length && i < DUEL.fighters.length; i++) {
+    const c = DUEL.fighters[i].cam, r = rects[i];
+    if (!c) continue;
+    c.aspect = r.w / Math.max(1, r.h);
+    c.updateProjectionMatrix();
+  }
   return rects;
 }
 
@@ -6651,7 +7053,7 @@ const AI_RIVALS = [
 ];
 function startAiRival() {
   const r = AI_RIVALS[Math.floor(Math.random() * AI_RIVALS.length)];
-  Object.assign(LOADOUTS[1], { primary: r.primary, secondary: r.secondary, melee: r.melee, utility: r.util });
+  Object.assign(LOADOUTS[1], { primary: r.primary, primary2: r.primary2 || 'dmr', secondary: r.secondary, melee: r.melee, utility: r.util });
   AI_SKIN[1] = r.skin;
   G.aiRivalName = r.name;
   G.aiSkill = r.skill;
@@ -6764,7 +7166,7 @@ function netRemoteState(msg) {
   f.netT.yaw = msg.y; f.netT.pitch = msg.pi;
   f.netCrouch = !!msg.c; f.netSlide = !!msg.sl; f.netGround = !!msg.g;
   f.netSpeed = msg.sp || 0;
-  f.wi = Math.max(0, Math.min(2, msg.w | 0));
+  f.wi = Math.max(0, Math.min(Math.max(0, (f.ids ? f.ids.length : 4) - 1), msg.w | 0));
   f.ads = msg.a ? 1 : 0;
   f.hp = msg.hp === undefined ? f.hp : msg.hp;
   if (f.vm) { for (let i = 0; i < f.vm.models.length; i++) f.vm.models[i].group.visible = i === f.wi; }
@@ -6806,7 +7208,9 @@ function netRemoteRound(msg) {
   if (!DUEL.active) return;
   DUEL.round = msg.n;
   DUEL.score = [msg.sa, msg.sb];
-  startRound(msg.side);
+  // 호스트 기준 side를 그대로 쓰면 게스트도 같은 진영에 서서 겹친다 → 반대로 배치
+  if (msg.side === undefined || msg.side === null) startRound();
+  else startRound(!msg.side);
 }
 
 function netRemoteEmote(msg) {
@@ -7195,6 +7599,16 @@ function duelDirHit(target, fromArr) {
   });
   const nm = document.getElementById('skinName');
   if (nm) nm.textContent = SKIN_BY_ID[SKIN.equipped].name;
+})();
+
+/* ---------- 뷰포트 감시 시작 (p1~p10 로드가 모두 끝난 뒤) ---------- */
+(function startViewportWatch() {
+  try {
+    watchViewport();
+    onResize();
+    setTimeout(onResize, 120);
+    setTimeout(onResize, 600);
+  } catch (e) { ERRORS.push('viewport: ' + ((e && e.message) || e)); }
 })();
 
 </script>
