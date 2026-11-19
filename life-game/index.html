@@ -1295,6 +1295,38 @@ function buildCity(){
     b.doorZ = b.z + b.d / 2 + 3.2;
   });
 
+  /* 배경 건물 (도시 밀도) */
+  const fillers = [];
+  const fillerPalette = [0xd9cdb4, 0xc9d6e2, 0xe4cfc0, 0xcfdcc6, 0xdcd2e2, 0xe8ddc0];
+  blockCenters.forEach(bx => blockCenters.forEach(bz => {
+    if(bz > 190) return;
+    const offs = [[-27,-26],[27,-26],[-27,26],[27,26],[0,-30],[0,30]];
+    offs.forEach(o => {
+      const x = bx + o[0] + rand(-2, 2), z = bz + o[1] + rand(-2, 2);
+      if(treeBlocked(x, z)) return;
+      if(Math.hypot(x + 100, z - 27) < 16) return;
+      if(BUILDINGS.some(b => Math.abs(b.x - x) < b.w / 2 + 9 && Math.abs(b.z - z) < b.d / 2 + 9)) return;
+      if(BUILDINGS.some(b => Math.hypot(b.doorX - x, b.doorZ - z) < 13)) return;
+      if(SPOTS.some(sp => Math.hypot(sp.x - x, sp.z - z) < sp.r + 8)) return;
+      fillers.push({ x, z, w: rand(9, 14), d: rand(8, 12), h: rand(4.5, 8), c: pick(fillerPalette) });
+    });
+  }));
+  fillers.forEach(f => {
+    const bmat = mat(f.c);
+    const b = new THREE.Mesh(new THREE.BoxGeometry(f.w, f.h, f.d), bmat);
+    b.position.set(f.x, f.h / 2 + 0.15, f.z);
+    G.add(b);
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(f.w + 0.5, 0.5, f.d + 0.5), mat(0x8f8574));
+    roof.position.set(f.x, f.h + 0.4, f.z);
+    G.add(roof);
+    const sh = new THREE.Mesh(new THREE.PlaneGeometry(f.w * 1.1, f.d * 1.1), new THREE.MeshBasicMaterial({
+      color:0x000000, transparent:true, opacity:0.12, depthWrite:false
+    }));
+    sh.rotation.x = -Math.PI / 2;
+    sh.position.set(f.x + 1, 0.04, f.z + 1.5);
+    G.add(sh);
+  });
+
   /* 자동차 (교통) */
   const carColors = [0xef5b5b, 0x4a9dff, 0xffc94d, 0x35c48a, 0xdadada, 0x8a62ff];
   const lanes = [
@@ -1671,6 +1703,11 @@ function updateCamera(dt){
   camera.position.y += (cy - camera.position.y) * k;
   camera.position.z += (cz - camera.position.z) * k;
   camera.lookAt(px, py + 1.28, pz);
+  if(lightState.dir){
+    lightState.dir.position.set(px + 45, 95, pz + 55);
+    lightState.dir.target.position.set(px, 0, pz);
+    lightState.dir.target.updateMatrixWorld();
+  }
 }
 
 function toggleCamera(){
@@ -2022,7 +2059,14 @@ function initLights(){
   scene.add(hemi);
   const dir = new THREE.DirectionalLight(0xfff4dd, 0.8);
   dir.position.set(80, 130, 50);
+  dir.castShadow = true;
+  dir.shadow.mapSize.set(1024, 1024);
+  dir.shadow.camera.left = -55; dir.shadow.camera.right = 55;
+  dir.shadow.camera.top = 55; dir.shadow.camera.bottom = -55;
+  dir.shadow.camera.near = 1; dir.shadow.camera.far = 240;
+  dir.shadow.bias = -0.0012;
   scene.add(dir);
+  scene.add(dir.target);
   const amb = new THREE.AmbientLight(0xffffff, 0.14);
   scene.add(amb);
   lightState.hemi = hemi; lightState.dir = dir; lightState.amb = amb;
@@ -3892,6 +3936,8 @@ function initThree(){
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setSize(window.innerWidth, window.innerHeight, false);
   if('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x9ec9e8);
@@ -3903,6 +3949,12 @@ function initThree(){
   initLights();
   buildCity();
   spawnNPCs();
+  scene.traverse(o => {
+    if(o.isMesh || o.isInstancedMesh){
+      if(o.geometry && o.geometry.type === 'PlaneGeometry' && o.rotation.x < -1.5){ o.receiveShadow = true; }
+      else { o.castShadow = true; o.receiveShadow = true; }
+    }
+  });
   return true;
 }
 
