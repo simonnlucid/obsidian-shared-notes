@@ -341,6 +341,11 @@ body.touching #duelHud.split-h .dslot .n{font-size:8.5px}
 .tbtns{position:absolute;right:12px;bottom:12px;display:grid;grid-template-columns:56px 56px 56px;grid-template-rows:42px 42px 58px;gap:6px;align-items:center;justify-items:center;pointer-events:none}
 .tbtn{pointer-events:auto;touch-action:none;width:56px;height:48px;border-radius:12px;background:rgba(10,26,34,.62);border:1.5px solid rgba(120,220,250,.4);color:#dff8ff;font-size:10px;font-weight:700;letter-spacing:.04em;display:flex;align-items:center;justify-content:center;font-family:inherit;backdrop-filter:blur(4px);user-select:none;-webkit-user-select:none}
 .tbtn:active,.tbtn.on{background:rgba(50,200,255,.4);border-color:#9ff0ff;color:#fff}
+/* 조준 토글 고정 표시 — 손을 떼도 이 상태가 유지된다 */
+.tbtn[data-a="ads"]{position:relative}
+.tbtn[data-a="ads"].locked{background:rgba(64,226,255,.86);border-color:#e8feff;color:#03202b;font-weight:800;box-shadow:0 0 0 2px rgba(150,245,255,.45),0 0 16px rgba(90,235,255,.65)}
+.tbtn[data-a="ads"].locked::after{content:'';position:absolute;top:5px;right:6px;width:6px;height:6px;border-radius:50%;background:#03202b;box-shadow:0 0 6px #eaffff}
+.tbtn[data-a="ads"].locked::before{content:'';position:absolute;left:50%;bottom:3px;width:16px;height:2px;margin-left:-8px;border-radius:2px;background:rgba(3,32,43,.7)}
 .tbtn.fire{grid-column:3;grid-row:2;width:100%;height:60px;border-radius:30px;font-size:12px;background:rgba(255,90,70,.3);border-color:rgba(255,150,120,.75);color:#fff;letter-spacing:.08em}
 .tbtn.fire:active,.tbtn.fire.on{background:rgba(255,110,80,.6)}
 .tbtn.wide{grid-column:1/2;grid-row:1}
@@ -4838,6 +4843,7 @@ function startGame(practice) {
   EL.pause.classList.add('hidden');
   EL.hud.classList.add('on');
   EL.boss.classList.remove('on');
+  if (typeof clearAdsToggle === 'function') clearAdsToggle();
   camera.fov = FOV.cur = FOV.base = 80;
   vmRoot.visible = true;
   vmRoot.scale.setScalar(1);
@@ -4881,7 +4887,8 @@ function showPause() {
   if (G.state !== 'playing') return;
   G.state = 'paused';
   EL.pause.classList.remove('hidden');
-  INPUT.fireHeld = false; INPUT.ads = false;
+  INPUT.fireHeld = false;
+  if (typeof clearAdsToggle === 'function') clearAdsToggle(); else INPUT.ads = false;
   if (document.exitPointerLock) document.exitPointerLock();
 }
 function hidePause() {
@@ -4897,7 +4904,8 @@ function playerDied() {
   if (G.state !== 'playing' || G.mode !== 'solo') return;
   G.state = 'dead';
   P.alive = false;
-  INPUT.fireHeld = false; INPUT.ads = false;
+  INPUT.fireHeld = false;
+  if (typeof clearAdsToggle === 'function') clearAdsToggle(); else INPUT.ads = false;
   EL.hud.classList.remove('on');
   EL.scope.classList.remove('on');
   EL.goScore.textContent = G.score;
@@ -4922,6 +4930,7 @@ function goLobby() {
   if (document.exitPointerLock) document.exitPointerLock();
   INPUT.hadLock = false;
   setTouchMode('none');
+  if (typeof clearAdsToggle === 'function') clearAdsToggle();
   camera.fov = 74; camera.updateProjectionMatrix();
 }
 
@@ -5152,7 +5161,8 @@ window.__GAME = {
       enemies: ENEMIES.filter((e) => !e.dead).length,
       hp: Math.round(P.hp), armor: Math.round(P.armor),
       weapon: currentW().id, weaponName: currentW().name, weaponIndex: W.i,
-      mag: W.mag[W.i], reserve: W.reserve[W.i], reloading: W.reloading, ads: +W.ads.toFixed(2),
+      mag: W.mag[W.i], reserve: W.reserve[W.i], reloading: W.reloading, ads: +W.ads.toFixed(2), adsIn: !!INPUT.ads,
+      touchAds: (typeof TOUCH !== 'undefined' && TOUCH.built) ? !!padAdsState(TOUCH.pads.solo) : false,
       scoped: W.scoped, fov: +camera.fov.toFixed(1), pos: [+P.pos.x.toFixed(2), +P.pos.y.toFixed(2), +P.pos.z.toFixed(2)],
       grounded: P.grounded, shots: W.shots, hits: W.hits, fps: G.fps, util: W.util,
       drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles,
@@ -5164,6 +5174,7 @@ window.__GAME = {
         fighters: DUEL.fighters.map((f) => ({
           name: f.name, scheme: f.scheme, skin: f.skin, hp: Math.round(f.hp), alive: f.alive, wi: f.wi, weapon: f.ids[f.wi], crouch: !!f.crouching, emote: f.emote ? f.emote.i : -1,
           mag: f.mag[f.wi], reserve: f.reserve[f.wi], util: f.util, kills: DUEL.score[f.i], pos: [+f.pos.x.toFixed(1), +f.pos.y.toFixed(1), +f.pos.z.toFixed(1)], yaw: +f.yaw.toFixed(2),
+          ads: +f.ads.toFixed(2), adsTouch: !!f.inp.adsTouch, fov: +(f.cam ? f.cam.fov : 0).toFixed(1),
         })),
       };
     }
@@ -5217,7 +5228,7 @@ window.__GAME = {
   setMap(id) { setMap(id); },
   select(i) { selectWeapon(i); if (G.mode === 'duel' && DUEL.fighters[0]) duelSelect(DUEL.fighters[0], i); },
   fire() { if (G.mode === 'solo') pressFire(); else if (DUEL.fighters[0]) duelFire(DUEL.fighters[0], WDEF[DUEL.fighters[0].ids[DUEL.fighters[0].wi]]); },
-  aim(on) { INPUT.ads = !!on; if (G.mode === 'duel' && DUEL.fighters[0]) DUEL.fighters[0].inp.adsTouch = !!on; },
+  aim(on) { INPUT.ads = !!on; if (G.mode === 'duel' && DUEL.fighters[0]) DUEL.fighters[0].inp.adsTouch = !!on; if (typeof syncAdsButtons === 'function') syncAdsButtons(); },
   reload() { if (G.mode === 'solo') startReload(); else duelReload(DUEL.fighters[0]); },
   util() { if (G.mode === 'solo') useUtility(); else duelUseUtility(DUEL.fighters[0]); },
   look(yaw, pitch) {
@@ -5276,6 +5287,7 @@ window.__GAME = {
         updatePickups(dt, G.time); regenerate(dt, G.time); FX.update(dt);
       }
     }
+    if (typeof syncAdsButtons === 'function') syncAdsButtons();
     return this.state();
   },
   nextRound() { DUEL.round++; startRound(); },
@@ -5489,6 +5501,7 @@ function resetRoundFighter(f, spawn, yaw) {
   f.model.group.rotation.set(0, yaw + Math.PI, 0);
   f.model.group.scale.setScalar(1);
   f.emote = null; f.crouching = false;
+  if (f.inp) f.inp.adsTouch = false;   // 라운드·리스폰마다 조준 토글을 풀어 둠
   if (f.bot) {
     f.bot.seen = false; f.bot.reactT = 0; f.bot.restT = 0.45; f.bot.burstN = 0;
     f.bot.errT = 0; f.bot.aimYaw = 0; f.bot.aimPitch = 0; f.bot.losOffT = 0;
@@ -5527,6 +5540,7 @@ function startDuel(mode) {
   if (DUEL.online) { DUEL.score = [0, 0]; NET.helloDone = true; }
   startRound();
   setTouchMode(mode === 'pvp' ? 'duel' : 'solo');
+  if (typeof clearAdsToggle === 'function') clearAdsToggle();
   if (mode !== 'pvp' && mode !== 'online') requestLock();
 }
 
@@ -5554,6 +5568,7 @@ function startRound(side, fromNet) {
   }
   updateDuelHUD(0);
   onResize();
+  if (typeof syncAdsButtons === 'function') syncAdsButtons();
 }
 function yawTo(from, to) { return Math.atan2(-(to.x - from.x), -(to.z - from.z)); }
 
@@ -6600,6 +6615,7 @@ function buildTouch() {
       el, key,
       stick: el.querySelector('.tstick'), knob: el.querySelector('.tknob'),
       look: el.querySelector('.tlook'),
+      adsBtn: el.querySelector('.tbtn[data-a="ads"]'),
       axis: { x: 0, y: 0 }, lookId: null, lastX: 0, lastY: 0, stickId: null,
       ptrs: new Map(),
     };
@@ -6633,7 +6649,9 @@ function bindPad(pad) {
         applyTouchAxis(pad);
       }
     } else if (rec.role === 'btn') {
-      if (rec.btn) rec.btn.classList.remove('on');
+      // 조준 버튼은 토글이라 손을 떼도 표시가 유지된다.
+      if (rec.a === 'ads') paintAds(pad, padAdsState(pad));
+      else if (rec.btn) rec.btn.classList.remove('on');
       touchAction(pad, rec.a, false);
     } else if (pad.lookId === id) {
       pad.lookId = null;
@@ -6655,7 +6673,15 @@ function bindPad(pad) {
     const rec = { role, btn: btnEl, a: btnEl ? btnEl.dataset.a : null, x: e.clientX, y: e.clientY };
     ptrs.set(e.pointerId, rec);
     if (role === 'stick') { pad.stickId = e.pointerId; updateStick(pad, e); }
-    else if (role === 'btn') { btnEl.classList.add('on'); touchAction(pad, rec.a, true); }
+    else if (role === 'btn') {
+      if (rec.a === 'ads') {
+        // 한 번 탭 = 조준 고정, 다시 탭 = 해제
+        const on = !padAdsState(pad);
+        setPadAds(pad, on);
+        paintAds(pad, on);
+      } else btnEl.classList.add('on');
+      touchAction(pad, rec.a, true);
+    }
     else if (role === 'look') { pad.lookId = e.pointerId; }
   });
 
@@ -6724,15 +6750,70 @@ function applyLook(pad, dx, dy) {
   }
 }
 
+/* ---------------------------------------------------------------------------
+   조준(ADS) 토글
+   - 휴대폰: 조준 버튼을 한 번 탭하면 손을 떼도 조준이 유지되고, 다시 탭하면 풀린다.
+     버튼에는 고정 표시(.on /.locked)가 계속 켜져 있어 지금 조준 중인지 바로 보인다.
+   - 조준 중에도 사격 버튼을 누른 채 드래그하면 시점이 그대로 돌아간다(패드별 포인터 분리).
+   - PC 우클릭은 기존처럼 "누르고 있는 동안" 조준이다(FPS 표준).
+   --------------------------------------------------------------------------- */
+function inDuel() { return G.mode === 'duel' && DUEL.active; }
+function padAdsTarget(pad) {
+  if (inDuel()) {
+    const f = padFighter(pad);
+    return f && f.inp ? f.inp : null;
+  }
+  return INPUT;
+}
+function padAdsState(pad) {
+  const o = padAdsTarget(pad);
+  if (!o) return false;
+  return inDuel() ? !!o.adsTouch : !!o.ads;
+}
+function setPadAds(pad, v) {
+  const o = padAdsTarget(pad);
+  if (!o) return;
+  if (inDuel()) o.adsTouch = !!v;
+  else o.ads = !!v;
+}
+function adsBtnOf(pad) { return pad ? (pad.adsBtn || null) : null; }
+function paintAds(pad, on) {
+  const b = adsBtnOf(pad);
+  if (!b) return;
+  on = !!on;
+  b.classList.toggle('on', on);
+  b.classList.toggle('locked', on);
+  b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  pad.adsOn = on;
+}
+/* 실제 조준 상태를 버튼 표시에 맞춘다(라운드 시작·일시정지 등 외부에서 풀렸을 때) */
+function syncAdsButtons() {
+  if (!TOUCH || !TOUCH.built) return;
+  const p = TOUCH.pads;
+  for (const k in p) {
+    const pad = p[k];
+    if (!pad || !pad.el) continue;
+    const on = padAdsState(pad);
+    if (on !== !!pad.adsOn) paintAds(pad, on);
+  }
+}
+/* 조준 토글을 완전히 끈다(로비 복귀·판 종료·터치 UI 끄기) */
+function clearAdsToggle() {
+  INPUT.ads = false;
+  try {
+    if (typeof DUEL !== 'undefined' && DUEL && DUEL.fighters) {
+      for (const f of DUEL.fighters) if (f && f.inp) f.inp.adsTouch = false;
+    }
+  } catch (e) { }
+  if (TOUCH && TOUCH.built) for (const k in TOUCH.pads) paintAds(TOUCH.pads[k], false);
+}
+
 function touchAction(pad, a, down) {
+  if (a === 'ads') return;   // 조준은 위 토글에서만 처리한다
   if (!down) {
     if (a === 'fire') {
       if (G.mode === 'duel' && DUEL.active) { const f = padFighter(pad); if (f) f.inp.fireTouch = false; }
       else INPUT.fireHeld = false;
-    }
-    if (a === 'ads') {
-      if (G.mode === 'duel' && DUEL.active) { const f = padFighter(pad); if (f) f.inp.adsTouch = false; }
-      else INPUT.ads = false;
     }
     if (a === 'crouch') {
       if (G.mode === 'duel' && DUEL.active) { const f = padFighter(pad); if (f) f.inp.crouchTouch = false; }
@@ -6744,7 +6825,6 @@ function touchAction(pad, a, down) {
     const f = padFighter(pad);
     if (!f) return;
     if (a === 'fire') { f.inp.fireTouch = true; if (f.alive) duelFire(f, WDEF[f.ids[f.wi]]); }
-    else if (a === 'ads') f.inp.adsTouch = true;
     else if (a === 'reload') f.inp.reloadTouch = true;
     else if (a === 'jump') f.inp.jumpTouch = true;
     else if (a === 'swap') f.inp.swapTouch = true;
@@ -6757,7 +6837,6 @@ function touchAction(pad, a, down) {
   // solo waves
   if (G.state !== 'playing' || G.mode !== 'solo') return;
   if (a === 'fire') { INPUT.fireHeld = true; pressFire(); }
-  else if (a === 'ads') INPUT.ads = true;
   else if (a === 'reload') startReload();
   else if (a === 'jump') tryJump();
   else if (a === 'slide') trySlide();
@@ -6788,6 +6867,7 @@ function setTouchMode(mode) {
   p.a.el.style.display = mode === 'duel' ? 'block' : 'none';
   p.b.el.style.display = mode === 'duel' ? 'block' : 'none';
   layoutTouch();
+  syncAdsButtons();
 }
 
 function layoutTouch() {
@@ -6816,7 +6896,8 @@ function toggleTouch() {
   } else {
     setTouchMode('none');
     INPUT.tF = 0; INPUT.tR = 0; INPUT.tSprint = false;
-    INPUT.fireHeld = false; INPUT.ads = false;
+    INPUT.fireHeld = false;
+    clearAdsToggle();
     hudToast('터치 조작 꺼짐');
   }
   if (EL.touchBtn) EL.touchBtn.textContent = TOUCH.enabled ? '터치 조작 UI 끄기' : '터치 조작 UI 켜기';
