@@ -1040,7 +1040,7 @@ function buildCity(){
 
   /* 건물마다 마당 포장 */
   BUILDINGS.forEach(b => {
-    const pad = new THREE.Mesh(new THREE.PlaneGeometry(b.w + 12, b.d + 12), mat(0xd0c8b6));
+    const pad = new THREE.Mesh(new THREE.PlaneGeometry(b.w + 7, b.d + 7), mat(0xd0c8b6));
     pad.rotation.x = -Math.PI / 2;
     pad.position.set(b.x, 0.028, b.z + 2);
     G.add(pad);
@@ -1702,7 +1702,7 @@ function updateCamera(dt){
   camera.position.x += (cx - camera.position.x) * k;
   camera.position.y += (cy - camera.position.y) * k;
   camera.position.z += (cz - camera.position.z) * k;
-  camera.lookAt(px, py + 1.28, pz);
+  camera.lookAt(px, py + 1.95, pz);
   if(lightState.dir){
     lightState.dir.position.set(px + 45, 95, pz + 55);
     lightState.dir.target.position.set(px, 0, pz);
